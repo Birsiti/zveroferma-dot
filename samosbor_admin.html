@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Самосбор — админка</title>
+<style>
+  :root{
+    --green:#4C6236;
+    --green-dark:#263420;
+    --cream:#F4EFE1;
+    --sage:#AEC29B;
+    --sage-dim:#8a9a7c;
+    --card-bg:#FFFFFF;
+    --border:#E1DCCF;
+    --text:#2B2620;
+    --accent:#BC7128;
+    --danger:#C0392B;
+    --ok:#4C6236;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:var(--cream);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif;
+    color:var(--text);
+    padding:24px 16px 60px;
+  }
+  .wrap{max-width:480px;margin:0 auto;}
+  h1{
+    font-size:20px;
+    font-weight:700;
+    margin:0 0 4px;
+    color:var(--green-dark);
+  }
+  .subtitle{font-size:13px;color:var(--sage-dim);margin:0 0 24px;}
+
+  .card{
+    background:var(--card-bg);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:20px;
+    margin-bottom:16px;
+  }
+  .card h2{font-size:14px;font-weight:700;margin:0 0 14px;color:var(--green-dark);text-transform:uppercase;letter-spacing:.03em;}
+
+  .field{margin-bottom:14px;}
+  .field:last-child{margin-bottom:0;}
+  label{display:block;font-size:12px;font-weight:600;color:var(--sage-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:.02em;}
+  input[type=text], input[type=number], input[type=password]{
+    width:100%;
+    padding:11px 12px;
+    border:1.5px solid var(--border);
+    border-radius:10px;
+    font-size:15px;
+    font-family:inherit;
+    color:var(--text);
+    background:#fff;
+  }
+  input:focus{outline:none;border-color:var(--green);}
+
+  .toggle-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:12px 0;
+    border-bottom:1px solid var(--border);
+  }
+  .toggle-row:last-child{border-bottom:none;}
+  .toggle-label{font-size:15px;font-weight:600;}
+  .toggle-hint{font-size:12px;color:var(--sage-dim);margin-top:2px;}
+
+  .switch{position:relative;width:46px;height:26px;flex:none;}
+  .switch input{opacity:0;width:0;height:0;}
+  .slider{
+    position:absolute;cursor:pointer;inset:0;
+    background:#ccc;border-radius:26px;transition:.2s;
+  }
+  .slider:before{
+    content:"";position:absolute;height:20px;width:20px;left:3px;top:3px;
+    background:white;border-radius:50%;transition:.2s;
+  }
+  input:checked + .slider{background:var(--green);}
+  input:checked + .slider:before{transform:translateX(20px);}
+
+  .save-btn{
+    width:100%;
+    padding:15px;
+    background:var(--green-dark);
+    color:var(--cream);
+    border:none;
+    border-radius:12px;
+    font-size:15px;
+    font-weight:700;
+    cursor:pointer;
+    margin-top:8px;
+  }
+  .save-btn:active{opacity:.85;}
+  .save-btn:disabled{opacity:.5;cursor:not-allowed;}
+
+  .status-msg{
+    text-align:center;
+    font-size:13px;
+    font-weight:600;
+    padding:10px;
+    border-radius:10px;
+    margin-top:12px;
+    display:none;
+  }
+  .status-msg.ok{display:block;background:#E7F0E1;color:var(--ok);}
+  .status-msg.err{display:block;background:#FBEAE7;color:var(--danger);}
+
+  .loading{text-align:center;color:var(--sage-dim);font-size:13px;padding:40px 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🫐 Самосбор — управление</h1>
+  <p class="subtitle">Меняешь тут — сайт обновится сразу после сохранения</p>
+
+  <div id="loadingMsg" class="loading">Загружаем текущие настройки…</div>
+
+  <form id="adminForm" style="display:none;">
+
+    <div class="card">
+      <h2>Статус</h2>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Сезон активен</div>
+          <div class="toggle-hint">Выключи только в конце лета</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="seasonActive">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Приём заявок открыт</div>
+          <div class="toggle-hint">Идёт запись на заезд ниже</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="sessionOpen">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Параметры заезда</h2>
+      <div class="field">
+        <label for="date">Дата</label>
+        <input type="text" id="date" placeholder="25 июля, сб">
+      </div>
+      <div class="field">
+        <label for="time">Время</label>
+        <input type="text" id="time" placeholder="с 10:00">
+      </div>
+      <div class="field">
+        <label for="price">Цена</label>
+        <input type="text" id="price" placeholder="15 руб/кг">
+      </div>
+      <div class="field">
+        <label for="limit">Лимит мест</label>
+        <input type="number" id="limit" min="1" placeholder="10">
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Пароль</h2>
+      <div class="field">
+        <label for="password">Пароль администратора</label>
+        <input type="password" id="password" required placeholder="••••••">
+      </div>
+    </div>
+
+    <button type="submit" class="save-btn" id="saveBtn">Сохранить</button>
+    <div class="status-msg" id="statusMsg"></div>
+  </form>
+</div>
+
+<script>
+const CONFIG = {
+  apiUrl: 'https://script.google.com/macros/s/AKfycbwX1NMQRLnIZwut5M3XBH7h9W-59OiyDzbgT3G9ma_uHug7yZa1IkTVajcaPLTRjUYj/exec'
+};
+
+async function apiGet() {
+  const res = await fetch(CONFIG.apiUrl);
+  return res.json();
+}
+async function apiPost(payload) {
+  const res = await fetch(CONFIG.apiUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
+
+async function loadCurrent() {
+  try {
+    const status = await apiGet();
+    document.getElementById('seasonActive').checked = !!status.seasonActive;
+    document.getElementById('sessionOpen').checked = !!status.open;
+    document.getElementById('date').value = status.date || '';
+    document.getElementById('time').value = status.time || '';
+    document.getElementById('price').value = status.price || '';
+    document.getElementById('limit').value = status.limit || 10;
+
+    document.getElementById('loadingMsg').style.display = 'none';
+    document.getElementById('adminForm').style.display = 'block';
+  } catch (e) {
+    document.getElementById('loadingMsg').textContent = 'Не получилось загрузить настройки — обновите страницу';
+  }
+}
+loadCurrent();
+
+document.getElementById('adminForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('saveBtn');
+  const msg = document.getElementById('statusMsg');
+  msg.className = 'status-msg';
+  btn.disabled = true;
+  btn.textContent = 'Сохраняем…';
+
+  const payload = {
+    action: 'adminUpdate',
+    password: document.getElementById('password').value,
+    seasonActive: document.getElementById('seasonActive').checked,
+    sessionOpen: document.getElementById('sessionOpen').checked,
+    date: document.getElementById('date').value.trim(),
+    time: document.getElementById('time').value.trim(),
+    price: document.getElementById('price').value.trim(),
+    limit: Number(document.getElementById('limit').value) || 10
+  };
+
+  try {
+    const result = await apiPost(payload);
+    if (result.success) {
+      msg.textContent = '✓ Сохранено — сайт обновлён';
+      msg.className = 'status-msg ok';
+    } else {
+      msg.textContent = result.message || 'Не получилось сохранить';
+      msg.className = 'status-msg err';
+    }
+  } catch (err) {
+    msg.textContent = 'Ошибка соединения — попробуйте ещё раз';
+    msg.className = 'status-msg err';
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Сохранить';
+});
+</script>
+</body>
+</html>
