@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Самосбор голубики — Ягодное место</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root{
+    --green-top:#4C6236;
+    --green-bottom:#263420;
+    --cream:#F4EFE1;
+    --sage:#AEC29B;
+    --sage-dim:#93A582;
+    --card-bg:rgba(255,255,255,0.055);
+    --card-border:rgba(255,255,255,0.14);
+    --input-bg:rgba(255,255,255,0.08);
+    --input-border:rgba(255,255,255,0.20);
+    --cta-bg:#F4EFE1;
+    --cta-text:#263420;
+    --error:#E8A36B;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse 700px 500px at 75% 8%, rgba(255,255,255,0.07), transparent 60%),
+      linear-gradient(180deg, var(--green-top) 0%, var(--green-bottom) 100%);
+    background-attachment:fixed;
+    color:var(--cream);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .wrap{max-width:480px;margin:0 auto;padding:36px 20px 44px;}
+
+  .eyebrow{
+    font-size:12px;
+    font-weight:600;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--sage);
+    text-align:center;
+    margin-bottom:10px;
+  }
+  .hero{text-align:center;padding-bottom:22px;}
+  .basket{font-size:64px;line-height:1;margin:0 auto 10px;text-align:center;}
+  h1{
+    font-family:'Playfair Display',Georgia,serif;
+    font-weight:800;
+    font-size:32px;
+    line-height:1.15;
+    margin:0 0 12px;
+    color:var(--cream);
+  }
+  .sub{font-size:15px;line-height:1.55;color:var(--sage);margin:0 auto;max-width:340px;}
+
+  .info-row{
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:16px;
+  }
+  .info-pill{
+    background:rgba(255,255,255,0.09);
+    border:1px solid var(--card-border);
+    border-radius:999px;
+    padding:8px 16px;
+    font-size:13px;
+    font-weight:600;
+    color:var(--cream);
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+
+  .counter-card{
+    background:var(--card-bg);
+    border:1px solid var(--card-border);
+    border-radius:22px;
+    padding:18px 20px;
+    margin:20px 0;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    backdrop-filter:blur(6px);
+  }
+  .counter-jar{width:42px;height:42px;flex:none;}
+  .counter-text{flex:1;}
+  .counter-title{font-size:12px;color:var(--sage-dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;}
+  .counter-value{font-family:'Playfair Display',Georgia,serif;font-size:20px;font-weight:700;color:var(--cream);}
+  .counter-bar{
+    height:6px;background:rgba(255,255,255,0.12);border-radius:4px;overflow:hidden;margin-top:9px;
+  }
+  .counter-bar-fill{
+    height:100%;background:linear-gradient(90deg,var(--sage),var(--cream));
+    border-radius:4px;transition:width .5s ease;
+  }
+
+  .card{
+    background:var(--card-bg);
+    border:1px solid var(--card-border);
+    border-radius:24px;
+    padding:24px 22px;
+    backdrop-filter:blur(6px);
+  }
+
+  form{display:flex;flex-direction:column;gap:15px;}
+  label{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--sage-dim);margin-bottom:7px;display:block;}
+  input, select{
+    width:100%;
+    padding:13px 14px;
+    border:1.5px solid var(--input-border);
+    border-radius:12px;
+    font-size:16px;
+    font-family:inherit;
+    background:var(--input-bg);
+    color:var(--cream);
+    outline:none;
+    transition:border-color .15s;
+    color-scheme:dark;
+  }
+  input::placeholder{color:rgba(244,239,225,0.42);}
+  input:focus, select:focus{border-color:var(--cream);}
+  .field{display:flex;flex-direction:column;}
+
+  .phone-row{display:flex;gap:0;}
+  .phone-prefix{
+    display:flex;align-items:center;justify-content:center;
+    padding:0 10px;
+    border:1.5px solid var(--input-border);
+    border-right:none;
+    border-radius:12px 0 0 12px;
+    background:rgba(255,255,255,0.12);
+    color:var(--cream);
+    font-size:16px;
+    font-weight:600;
+    flex:none;
+  }
+  .phone-row input{
+    border-radius:0 12px 12px 0;
+  }
+
+  .stepper{display:flex;align-items:center;gap:0;border:1.5px solid var(--input-border);border-radius:12px;overflow:hidden;background:var(--input-bg);width:fit-content;}
+  .stepper button{
+    width:44px;height:44px;border:none;background:transparent;font-size:20px;color:var(--cream);cursor:pointer;
+  }
+  .stepper button:active{background:rgba(255,255,255,0.08);}
+  .stepper .val{width:44px;text-align:center;font-size:16px;font-weight:600;color:var(--cream);}
+
+  .submit-btn{
+    margin-top:6px;
+    background:var(--cta-bg);
+    color:var(--cta-text);
+    border:none;
+    border-radius:14px;
+    padding:16px;
+    font-size:16px;
+    font-weight:700;
+    cursor:pointer;
+    transition:transform .1s, opacity .15s;
+  }
+  .submit-btn:active{transform:scale(0.98);}
+  .submit-btn:hover{opacity:0.92;}
+  .submit-btn:disabled{background:rgba(244,239,225,0.35);cursor:not-allowed;}
+
+  .hint{font-size:12px;color:var(--sage-dim);text-align:center;margin-top:2px;}
+
+  .notice-box{
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    background:rgba(255,255,255,0.09);
+    border:1px solid var(--card-border);
+    border-radius:14px;
+    padding:14px 16px;
+    margin-bottom:16px;
+  }
+  .notice-box .notice-icon{font-size:22px;line-height:1;flex:none;}
+  .notice-box .notice-text{font-size:15px;line-height:1.5;color:var(--cream);}
+
+  .state-card{
+    background:var(--card-bg);
+    border:1px solid var(--card-border);
+    border-radius:24px;
+    padding:32px 22px;
+    text-align:center;
+    backdrop-filter:blur(6px);
+  }
+  .state-card .icon{font-size:40px;margin-bottom:12px;}
+  .state-card h2{font-family:'Playfair Display',Georgia,serif;font-size:22px;font-weight:800;margin:0 0 8px;color:var(--cream);}
+  .state-card p{font-size:14px;line-height:1.55;color:var(--sage);margin:0;}
+  .ticket-id{
+    display:inline-block;margin-top:16px;padding:7px 14px;background:rgba(255,255,255,0.1);
+    border-radius:8px;font-family:'Courier New',monospace;font-size:13px;color:var(--cream);
+  }
+
+  .hidden{display:none !important;}
+  .error-msg{color:var(--error);font-size:13px;margin-top:-4px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <div class="basket">🫐</div>
+    <div class="eyebrow" id="heroEyebrow">Запись ограничена</div>
+    <h1>Самосбор<br>голубики</h1>
+    <p class="sub" id="heroSub">Загружаем актуальную информацию…</p>
+    <div class="info-row hidden" id="infoRow">
+      <div class="info-pill">📅 <span id="pillDate"></span> · <span id="pillTime"></span></div>
+      <div class="info-pill">💰 <span id="pillPrice"></span></div>
+    </div>
+  </div>
+
+  <div class="counter-card hidden" id="counterCard">
+    <svg class="counter-jar" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="10" y="8" width="24" height="30" rx="4" stroke="#F4EFE1" stroke-width="2" fill="rgba(255,255,255,0.05)"/>
+      <rect x="14" y="4" width="16" height="6" rx="2" fill="#F4EFE1"/>
+      <rect id="jarFill" x="12" y="26" width="20" height="10" rx="2" fill="#AEC29B" opacity="0.9"/>
+    </svg>
+    <div class="counter-text">
+      <div class="counter-title">Свободные места</div>
+      <div class="counter-value" id="counterValue">загрузка…</div>
+      <div class="counter-bar"><div class="counter-bar-fill" id="counterBar" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="notice-box hidden" id="waitlistNotice">
+      <div class="notice-icon">📋</div>
+      <div class="notice-text" id="waitlistNoticeText">Мест нет — заполните форму, чтобы встать в лист ожидания. Сообщим первым, если кто-то отменит запись.</div>
+    </div>
+    <form id="regForm">
+      <div class="field">
+        <label for="name">Имя</label>
+        <input type="text" id="name" name="reg_name_field" required autocomplete="off" placeholder="Как к Вам обращаться">
+      </div>
+      <div class="field">
+        <label for="phone">Телефон</label>
+        <div class="phone-row">
+          <span class="phone-prefix">+375</span>
+          <input type="tel" id="phone" name="reg_phone_field" required autocomplete="off" placeholder="29 777 72 22" inputmode="numeric">
+        </div>
+      </div>
+      <div class="field">
+        <label>Количество человек</label>
+        <div class="stepper">
+          <button type="button" id="minus">−</button>
+          <div class="val" id="peopleVal">1</div>
+          <button type="button" id="plus">+</button>
+        </div>
+      </div>
+      <div class="error-msg hidden" id="errorMsg"></div>
+      <button type="submit" class="submit-btn" id="submitBtn" disabled>Загрузка…</button>
+      <div class="hint" id="formHint">🔒 Вход на поле — только по регистрации</div>
+    </form>
+  </div>
+
+  <div class="state-card hidden" id="successCard">
+    <div class="icon">🫐</div>
+    <h2>Записали!</h2>
+    <p id="successText">Ждём Вас. Если что-то изменится — позвоним.</p>
+    <div class="ticket-id" id="ticketId"></div>
+  </div>
+
+  <div class="state-card hidden" id="duplicateCard">
+    <div class="icon">📋</div>
+    <h2>Уже записаны</h2>
+    <p>Этот номер уже в списке на самосбор. Если планы изменились — можно отменить запись.</p>
+    <div class="error-msg hidden" id="cancelErrorMsg" style="margin-top:10px;"></div>
+    <button type="button" class="submit-btn" id="cancelRegBtn" style="margin-top:16px;">Отменить запись</button>
+    <div class="hint" id="tryAnotherLink" style="cursor:pointer;text-decoration:underline;margin-top:12px;">Ввести другой номер</div>
+  </div>
+
+  <div class="state-card hidden" id="waitlistCard">
+    <div class="icon">📋</div>
+    <h2 id="waitlistCardTitle">Записали в лист ожидания!</h2>
+    <p id="waitlistCardText">Если кто-то отменит запись — сообщим Вам первым в Telegram.</p>
+  </div>
+
+</div>
+
+<script>
+const tg=window.Telegram?.WebApp;if(tg){tg.ready();tg.expand();}
+const telegramUser = tg?.initDataUnsafe?.user || null;
+
+const CONFIG = {
+  apiUrl: 'https://script.google.com/macros/s/AKfycbwX1NMQRLnIZwut5M3XBH7h9W-59OiyDzbgT3G9ma_uHug7yZa1IkTVajcaPLTRjUYj/exec'
+};
+
+let people = 1;
+const peopleVal = document.getElementById('peopleVal');
+document.getElementById('minus').onclick = () => { if(people>1){people--; peopleVal.textContent=people;} };
+document.getElementById('plus').onclick = () => { if(people<5){people++; peopleVal.textContent=people;} };
+
+const phoneInput = document.getElementById('phone');
+function formatPhone(raw) {
+  const digits = raw.replace(/\D/g, '').slice(0, 9);
+  const parts = [];
+  if (digits.length > 0) parts.push(digits.slice(0, 2));
+  if (digits.length > 2) parts.push(digits.slice(2, 5));
+  if (digits.length > 5) parts.push(digits.slice(5, 7));
+  if (digits.length > 7) parts.push(digits.slice(7, 9));
+  return parts.join(' ');
+}
+phoneInput.addEventListener('input', (e) => {
+  e.target.value = formatPhone(e.target.value);
+});
+
+async function apiGet() {
+  const res = await fetch(CONFIG.apiUrl);
+  return res.json();
+}
+async function apiPost(payload) {
+  const res = await fetch(CONFIG.apiUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
+
+// formMode: 'register' — идёт набор, есть места
+//           'waitlist'  — идёт набор, мест нет ЛИБО заезда сейчас нет ЛИБО сезон закончился
+let formMode = 'register';
+let sessionOpen = true;
+let seasonActive = true;
+let currentLimit = 10;
+
+function applyStatus(status) {
+  sessionOpen = !!status.open;
+  seasonActive = status.seasonActive !== false; // по умолчанию считаем сезон активным
+  currentLimit = status.limit || currentLimit;
+
+  if (!seasonActive) {
+    showSeasonOverMode();
+  } else if (!sessionOpen) {
+    showPausedMode();
+  } else {
+    showOpenMode(status);
+  }
+
+  document.getElementById('submitBtn').disabled = false;
+}
+
+function showOpenMode(status) {
+  document.getElementById('heroEyebrow').textContent = 'Запись ограничена';
+  document.getElementById('heroSub').textContent = 'В этом сезоне открыт самосбор на ограниченное число сборщиков.';
+  document.getElementById('infoRow').classList.remove('hidden');
+  document.getElementById('pillDate').textContent = status.date || '';
+  document.getElementById('pillTime').textContent = status.time || '';
+  document.getElementById('pillPrice').textContent = status.price || '';
+  document.getElementById('counterCard').classList.remove('hidden');
+
+  const remaining = Math.max(status.remaining, 0);
+  const limit = status.limit || currentLimit;
+  document.getElementById('counterValue').textContent = remaining + ' из ' + limit;
+  const filledPct = Math.min(100, Math.round((limit - remaining) / limit * 100));
+  document.getElementById('counterBar').style.width = filledPct + '%';
+
+  document.getElementById('formHint').textContent = '🔒 Вход на поле — только по регистрации';
+
+  setFormMode(status.full ? 'waitlist' : 'register');
+}
+
+function showPausedMode() {
+  document.getElementById('heroEyebrow').textContent = 'Регистрация закрыта';
+  document.getElementById('heroSub').textContent = 'Запись на эти выходные закрыта. Следующий набор объявим отдельно — оставьте контакт, сообщим первыми.';
+  document.getElementById('infoRow').classList.add('hidden');
+  document.getElementById('counterCard').classList.add('hidden');
+  document.getElementById('formHint').textContent = 'Свяжемся, когда откроем запись';
+  setFormMode('waitlist');
+}
+
+function showSeasonOverMode() {
+  document.getElementById('heroEyebrow').textContent = 'Сезон завершён';
+  document.getElementById('heroSub').textContent = 'Самосбор в этом году закончен. Оставьте контакт — сообщим первыми, когда откроем новый сезон.';
+  document.getElementById('infoRow').classList.add('hidden');
+  document.getElementById('counterCard').classList.add('hidden');
+  document.getElementById('formHint').textContent = 'Увидимся в следующем сезоне';
+  setFormMode('waitlist');
+}
+
+function setFormMode(mode) {
+  formMode = mode;
+  const btn = document.getElementById('submitBtn');
+  const notice = document.getElementById('waitlistNotice');
+  const noticeText = document.getElementById('waitlistNoticeText');
+
+  if (mode === 'waitlist') {
+    btn.textContent = (sessionOpen && seasonActive) ? 'Встать в лист ожидания' : 'Оставить заявку';
+    if (!seasonActive) {
+      noticeText.textContent = '📋 Сезон завершён — оставьте контакт, сообщим о следующем.';
+    } else if (!sessionOpen) {
+      noticeText.textContent = '📋 Сейчас запись закрыта — оставьте контакт, сообщим о следующем наборе.';
+    } else {
+      noticeText.textContent = '📋 Мест нет — заполните форму, чтобы встать в лист ожидания. Сообщим первым, если кто-то отменит запись.';
+    }
+    notice.classList.remove('hidden');
+  } else {
+    btn.textContent = 'Записаться';
+    notice.classList.add('hidden');
+  }
+}
+
+async function loadStatus() {
+  try {
+    const status = await apiGet();
+    if (status.error) {
+      throw new Error(status.message || 'backend error');
+    }
+    applyStatus(status);
+  } catch (e) {
+    document.getElementById('heroSub').textContent = 'Не получилось загрузить информацию — попробуйте обновить страницу.';
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('submitBtn').textContent = 'Ошибка загрузки';
+  }
+}
+loadStatus();
+
+document.getElementById('regForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errorEl = document.getElementById('errorMsg');
+  errorEl.classList.add('hidden');
+  const nameValue = document.getElementById('name').value.trim();
+  const phoneDigits = document.getElementById('phone').value.replace(/\D/g, '');
+
+  if (!nameValue) {
+    errorEl.textContent = 'Введите имя';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+  if (phoneDigits.length !== 9) {
+    errorEl.textContent = 'Введите номер телефона полностью';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
+  const btn = document.getElementById('submitBtn');
+  const isWaitlist = formMode === 'waitlist';
+  btn.disabled = true;
+  btn.textContent = isWaitlist ? 'Записываем…' : 'Записываем…';
+
+  const payload = {
+    action: isWaitlist ? 'waitlist' : 'register',
+    name: nameValue,
+    phone: '375 ' + document.getElementById('phone').value.trim(),
+    telegramId: telegramUser?.id || '',
+    people: people
+  };
+
+  try {
+    const result = await apiPost(payload);
+    if (result.success) {
+      document.getElementById('regForm').closest('.card').classList.add('hidden');
+      if (isWaitlist) {
+        const fullyOpen = sessionOpen && seasonActive;
+        document.getElementById('waitlistCardTitle').textContent = fullyOpen ? 'Записали в лист ожидания!' : 'Заявку приняли!';
+        document.getElementById('waitlistCardText').textContent = fullyOpen
+          ? 'Если кто-то отменит запись — сообщим Вам первым в Telegram.'
+          : 'Сообщим первыми, когда откроем следующий набор.';
+        document.getElementById('waitlistCard').classList.remove('hidden');
+      } else {
+        document.getElementById('successText').textContent = 'Ждём Вас ' + document.getElementById('pillDate').textContent + ' (' + document.getElementById('pillTime').textContent + '). Если что-то изменится — позвоним.';
+        document.getElementById('successCard').classList.remove('hidden');
+        document.getElementById('ticketId').textContent = '№ ' + (result.id || '—');
+      }
+    } else if (result.full) {
+      errorEl.textContent = 'Места как раз закончились — нажмите кнопку ещё раз, чтобы встать в лист ожидания';
+      errorEl.classList.remove('hidden');
+      setFormMode('waitlist');
+      btn.disabled = false;
+    } else if (result.duplicate) {
+      lastAttemptedPhone = '375 ' + document.getElementById('phone').value.trim();
+      document.getElementById('regForm').closest('.card').classList.add('hidden');
+      document.getElementById('duplicateCard').classList.remove('hidden');
+      btn.disabled = false;
+      setFormMode(formMode);
+    } else {
+      errorEl.textContent = result.message || 'Не получилось записаться, попробуйте ещё раз';
+      errorEl.classList.remove('hidden');
+      btn.disabled = false;
+      setFormMode(formMode);
+    }
+  } catch (err) {
+    errorEl.textContent = 'Ошибка соединения — попробуйте ещё раз';
+    errorEl.classList.remove('hidden');
+    btn.disabled = false;
+    setFormMode(formMode);
+  }
+});
+
+let lastAttemptedPhone = '';
+
+document.getElementById('cancelRegBtn').addEventListener('click', async () => {
+  const cbtn = document.getElementById('cancelRegBtn');
+  const cancelErrorEl = document.getElementById('cancelErrorMsg');
+  cancelErrorEl.classList.add('hidden');
+  cbtn.disabled = true;
+  cbtn.textContent = 'Отменяем…';
+
+  try {
+    const result = await apiPost({ action: 'cancel', phone: lastAttemptedPhone });
+    if (result.success) {
+      document.getElementById('duplicateCard').classList.add('hidden');
+      document.getElementById('regForm').closest('.card').classList.remove('hidden');
+      document.getElementById('name').value = '';
+      document.getElementById('phone').value = '';
+      people = 1;
+      peopleVal.textContent = '1';
+      loadStatus();
+    } else {
+      cancelErrorEl.textContent = result.message || 'Не получилось отменить запись';
+      cancelErrorEl.classList.remove('hidden');
+    }
+  } catch (err) {
+    cancelErrorEl.textContent = 'Ошибка соединения — попробуйте ещё раз';
+    cancelErrorEl.classList.remove('hidden');
+  }
+  cbtn.disabled = false;
+  cbtn.textContent = 'Отменить запись';
+});
+
+document.getElementById('tryAnotherLink').addEventListener('click', () => {
+  document.getElementById('duplicateCard').classList.add('hidden');
+  document.getElementById('regForm').closest('.card').classList.remove('hidden');
+  document.getElementById('phone').value = '';
+  document.getElementById('phone').focus();
+});
+</script>
+</body>
+</html>
