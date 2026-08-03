@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Оставить заявку — Студия Ботов</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap');
+
+  :root{
+    --bg:#111417; --surface:#1A1E22; --surface-2:#20252A; --surface-3:#262B31;
+    --ink:#EDEFF0; --ink-soft:#8C949C; --ink-faint:#565D64;
+    --accent:#2AABEE; --accent-dark:#1B8FCB; --accent-soft:rgba(42,171,238,.14);
+    --ok:#38A89D; --ok-soft:rgba(56,168,157,.14);
+    --danger:#E5626A; --danger-soft:rgba(229,98,106,.12);
+    --line:#2A2F35; --line-strong:#3A414A;
+    --radius:14px; --radius-sm:10px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;font-size:15px;line-height:1.5;
+    height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  h1,h2,h3{font-family:'Chakra Petch',sans-serif;font-weight:600;margin:0;}
+  button{font-family:inherit;border:none;cursor:pointer;background:none;color:inherit;}
+
+  .power-rail{height:3px;background:linear-gradient(90deg,var(--accent-dark),var(--accent),var(--ok));flex-shrink:0;}
+
+  /* header */
+  header{flex-shrink:0;padding:calc(12px + var(--safe-top)) 16px 12px;background:var(--surface);
+    border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;}
+  .back-btn{width:44px;height:44px;border-radius:10px;background:var(--surface-2);display:flex;
+    align-items:center;justify-content:center;flex-shrink:0;color:var(--ink-soft);}
+  .back-btn svg{width:18px;height:18px;}
+  .hdr-title{font-size:16px;letter-spacing:.01em;}
+  .hdr-sub{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);margin-top:2px;font-family:'JetBrains Mono',monospace;}
+  .dot-live{width:6px;height:6px;border-radius:50%;background:var(--ok);flex-shrink:0;
+    box-shadow:0 0 0 0 rgba(56,168,157,.6);animation:pulse 2s infinite;}
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(56,168,157,.5);}
+    70%{box-shadow:0 0 0 6px rgba(56,168,157,0);}
+    100%{box-shadow:0 0 0 0 rgba(56,168,157,0);}
+  }
+
+  /* content */
+  .content{flex:1;overflow-y:auto;padding:20px 16px calc(24px + var(--safe-bottom));
+    -webkit-overflow-scrolling:touch;}
+  .intro{margin-bottom:22px;}
+  .intro h1{font-size:20px;letter-spacing:.01em;margin-bottom:6px;}
+  .intro p{margin:0;color:var(--ink-soft);font-size:14px;line-height:1.55;}
+
+  form{display:flex;flex-direction:column;gap:18px;}
+  .field label{display:block;font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;
+    letter-spacing:.04em;color:var(--ink-faint);margin-bottom:7px;}
+  .field label .req{color:var(--accent);}
+  .field input[type="text"],
+  .field input[type="tel"],
+  .field textarea{width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-sm);
+    padding:13px 14px;color:var(--ink);font-family:'Inter',sans-serif;font-size:16px;outline:none;
+    transition:border-color .15s;}
+  .field textarea{resize:none;min-height:96px;line-height:1.5;}
+  .field input::placeholder,.field textarea::placeholder{color:var(--ink-faint);}
+  .field input:focus,.field textarea:focus{border-color:var(--accent);}
+  .field.invalid input,.field.invalid textarea{border-color:var(--danger);}
+  .field-error{display:none;color:var(--danger);font-size:12.5px;margin-top:6px;line-height:1.4;}
+  .field.invalid .field-error{display:block;}
+
+  .chip-group{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{position:relative;display:flex;align-items:center;justify-content:center;min-height:44px;
+    padding:0 16px;border-radius:22px;border:1px solid var(--line-strong);background:var(--surface-2);
+    font-size:13.5px;color:var(--ink-soft);transition:background .15s,border-color .15s,color .15s;}
+  .chip input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer;}
+  .chip.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+  /* submit bar */
+  .submit-bar{flex-shrink:0;padding:12px 16px calc(12px + var(--safe-bottom));background:var(--surface);
+    border-top:1px solid var(--line);}
+  .submit-btn{width:100%;min-height:50px;border-radius:var(--radius-sm);background:var(--accent);color:#fff;
+    font-family:'Inter',sans-serif;font-size:15.5px;font-weight:600;display:flex;align-items:center;
+    justify-content:center;gap:9px;transition:opacity .2s,transform .15s;}
+  .submit-btn:active{transform:scale(.98);}
+  .submit-btn.disabled{opacity:.5;pointer-events:none;}
+  .spinner{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.35);
+    border-top-color:#fff;animation:spin .7s linear infinite;flex-shrink:0;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .submit-error{display:none;color:var(--danger);font-size:12.5px;text-align:center;margin-top:10px;}
+  .submit-error.show{display:block;}
+
+  /* success state */
+  .success-panel{display:flex;flex-direction:column;align-items:center;text-align:center;
+    padding:36px 12px 12px;animation:rise .35s ease both;}
+  @keyframes rise{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+  .success-icon{width:56px;height:56px;border-radius:50%;background:var(--ok-soft);display:flex;
+    align-items:center;justify-content:center;margin-bottom:18px;flex-shrink:0;}
+  .success-icon svg{width:26px;height:26px;color:var(--ok);}
+  .success-panel h2{font-size:19px;margin-bottom:8px;}
+  .success-panel p{margin:0;color:var(--ink-soft);font-size:14px;max-width:280px;line-height:1.55;}
+  .restart-btn{margin-top:22px;color:var(--accent);font-size:13.5px;font-family:'JetBrains Mono',monospace;
+    text-decoration:underline;min-height:44px;display:flex;align-items:center;}
+
+  .hidden{display:none !important;}
+</style>
+</head>
+<body>
+
+<div class="power-rail"></div>
+
+<header>
+  <div class="back-btn" id="backBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+  </div>
+  <div>
+    <div class="hdr-title">Оставить заявку</div>
+    <div class="hdr-sub"><span class="dot-live"></span>Студия Ботов · ответим быстро</div>
+  </div>
+</header>
+
+<div class="content" id="content">
+
+  <div class="intro" id="intro">
+    <h1>Расскажите о задаче</h1>
+    <p>Оставьте контакты и пару слов о том, что нужно автоматизировать — команда свяжется и обсудит детали.</p>
+  </div>
+
+  <form id="leadForm" novalidate>
+    <div class="field" id="fieldName">
+      <label for="fldName">Имя <span class="req">*</span></label>
+      <input type="text" id="fldName" name="name" autocomplete="name" placeholder="Как к вам обращаться">
+      <div class="field-error" id="errName" role="alert"></div>
+    </div>
+
+    <div class="field" id="fieldContact">
+      <label for="fldContact">Контакт <span class="req">*</span></label>
+      <input type="text" id="fldContact" name="contact" autocomplete="tel" placeholder="@username или +7 999 000-00-00">
+      <div class="field-error" id="errContact" role="alert"></div>
+    </div>
+
+    <div class="field" id="fieldBusiness">
+      <label for="fldBusiness">Сфера бизнеса</label>
+      <input type="text" id="fldBusiness" name="business" autocomplete="organization" placeholder="Например: салон красоты">
+    </div>
+
+    <div class="field" id="fieldTask">
+      <label for="fldTask">Что нужно автоматизировать <span class="req">*</span></label>
+      <textarea id="fldTask" name="task" rows="4" placeholder="Опишите в двух словах: запись, каталог, доставка…"></textarea>
+      <div class="field-error" id="errTask" role="alert"></div>
+    </div>
+
+    <div class="field">
+      <label>Бюджет</label>
+      <div class="chip-group" id="budgetGroup" role="radiogroup" aria-label="Бюджет">
+        <label class="chip"><input type="radio" name="budget" value="До 50 000 ₽"><span>До 50 000 ₽</span></label>
+        <label class="chip"><input type="radio" name="budget" value="50 000–150 000 ₽"><span>50–150 тыс ₽</span></label>
+        <label class="chip"><input type="radio" name="budget" value="150 000+ ₽"><span>150 000+ ₽</span></label>
+        <label class="chip"><input type="radio" name="budget" value="Обсудим"><span>Обсудим</span></label>
+      </div>
+    </div>
+  </form>
+
+  <div class="success-panel hidden" id="successPanel">
+    <div class="success-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+    </div>
+    <h2>Заявка отправлена</h2>
+    <p>Мы получили ваши данные и свяжемся в ближайшее время, чтобы обсудить детали.</p>
+    <span class="restart-btn" id="restartBtn">Отправить ещё одну заявку</span>
+  </div>
+
+</div>
+
+<div class="submit-bar" id="submitBar">
+  <button class="submit-btn" id="submitBtn">
+    <span id="submitBtnLabel">Отправить заявку</span>
+  </button>
+  <div class="submit-error" id="submitError" role="alert">Не получилось отправить. Проверьте соединение и попробуйте ещё раз.</div>
+</div>
+
+<script>
+/* ============================================================ CONFIG ============================================================ */
+// Временная схема: заявка уходит напрямую в Telegram через Bot API из клиентского кода.
+// Токен бота при этом виден в исходнике страницы — приемлемо для быстрого старта,
+// но при переходе на ИИ-консультанта (см. план ниже) стоит перенести отправку на бэкенд
+// (например Cloudflare Worker), чтобы токен не был доступен напрямую в WebApp.
+const CONFIG = {
+  botToken: "8826586712:AAEAAj4wz_-xk2figKE2vZMjQ3gYO590EUY",
+  chatId: "6204739474",
+};
+// Следующий этап: сюда встанет apiUrl бэкенда, который вместо статичной формы
+// поведёт живой диалог через Anthropic API по инструкции консультанта.
+
+/* ============================================================ TELEGRAM ============================================================ */
+const tg = window.Telegram ? window.Telegram.WebApp : null;
+function haptic(style) {
+  if (tg && tg.HapticFeedback) {
+    if (["success","error","warning"].includes(style)) tg.HapticFeedback.notificationOccurred(style);
+    else tg.HapticFeedback.impactOccurred(style || "light");
+  }
+}
+function initTelegram() {
+  if (!tg) return;
+  tg.ready(); tg.expand();
+  const s = getComputedStyle(document.body);
+  try { tg.setHeaderColor(s.getPropertyValue("--surface").trim()); tg.setBackgroundColor(s.getPropertyValue("--bg").trim()); } catch(e) {}
+}
+document.getElementById("backBtn").addEventListener("click", () => {
+  haptic("light");
+  if (tg && tg.close) tg.close(); else history.back();
+});
+
+/* ============================================================ FORM ============================================================ */
+const form = document.getElementById("leadForm");
+const submitBtn = document.getElementById("submitBtn");
+const submitBtnLabel = document.getElementById("submitBtnLabel");
+const submitError = document.getElementById("submitError");
+const budgetGroup = document.getElementById("budgetGroup");
+
+const FIELDS = [
+  { key: "name", label: "Имя", fieldId: "fieldName", errId: "errName", inputId: "fldName",
+    validate: v => v.trim().length >= 2 ? "" : "Укажите имя" },
+  { key: "contact", label: "Контакт", fieldId: "fieldContact", errId: "errContact", inputId: "fldContact",
+    validate: v => v.trim().length >= 4 ? "" : "Укажите телеграм или телефон" },
+  { key: "task", label: "Задача", fieldId: "fieldTask", errId: "errTask", inputId: "fldTask",
+    validate: v => v.trim().length >= 5 ? "" : "Расскажите, что нужно" },
+];
+
+budgetGroup.querySelectorAll("input[type=radio]").forEach(radio => {
+  radio.addEventListener("change", () => {
+    budgetGroup.querySelectorAll(".chip").forEach(chip => chip.classList.remove("active"));
+    radio.closest(".chip").classList.add("active");
+  });
+});
+
+function validateField(f) {
+  const input = document.getElementById(f.inputId);
+  const fieldEl = document.getElementById(f.fieldId);
+  const errEl = document.getElementById(f.errId);
+  const msg = f.validate(input.value);
+  fieldEl.classList.toggle("invalid", !!msg);
+  errEl.textContent = msg;
+  return !msg;
+}
+
+FIELDS.forEach(f => {
+  document.getElementById(f.inputId).addEventListener("blur", () => validateField(f));
+});
+
+function validateAll() {
+  let firstInvalid = null;
+  let allValid = true;
+  FIELDS.forEach(f => {
+    const ok = validateField(f);
+    if (!ok) {
+      allValid = false;
+      if (!firstInvalid) firstInvalid = document.getElementById(f.inputId);
+    }
+  });
+  if (firstInvalid) firstInvalid.focus();
+  return allValid;
+}
+
+function collectPayload() {
+  const budget = budgetGroup.querySelector("input[type=radio]:checked");
+  return {
+    name: document.getElementById("fldName").value.trim(),
+    contact: document.getElementById("fldContact").value.trim(),
+    business: document.getElementById("fldBusiness").value.trim(),
+    task: document.getElementById("fldTask").value.trim(),
+    budget: budget ? budget.value : "не выбран",
+  };
+}
+
+function buildMessage(p) {
+  return [
+    "🆕 Новая заявка (order-bot)",
+    `Имя: ${p.name}`,
+    `Контакт: ${p.contact}`,
+    `Сфера: ${p.business || "не указано"}`,
+    `Задача: ${p.task}`,
+    `Бюджет: ${p.budget}`,
+  ].join("\n");
+}
+
+async function sendToTelegram(text) {
+  const url = `https://api.telegram.org/bot${CONFIG.botToken}/sendMessage`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: CONFIG.chatId, text }),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.ok) throw new Error(data.description || "send_failed");
+}
+
+function setLoading(loading) {
+  submitBtn.classList.toggle("disabled", loading);
+  submitBtnLabel.textContent = loading ? "Отправка…" : "Отправить заявку";
+  if (loading) {
+    const spinner = document.createElement("span");
+    spinner.className = "spinner";
+    spinner.id = "submitSpinner";
+    submitBtn.insertBefore(spinner, submitBtnLabel);
+  } else {
+    const s = document.getElementById("submitSpinner");
+    if (s) s.remove();
+  }
+}
+
+function showSuccess() {
+  document.getElementById("intro").classList.add("hidden");
+  form.classList.add("hidden");
+  document.getElementById("successPanel").classList.remove("hidden");
+  document.getElementById("submitBar").classList.add("hidden");
+  haptic("success");
+}
+
+function resetForm() {
+  form.reset();
+  budgetGroup.querySelectorAll(".chip").forEach(chip => chip.classList.remove("active"));
+  FIELDS.forEach(f => {
+    document.getElementById(f.fieldId).classList.remove("invalid");
+    document.getElementById(f.errId).textContent = "";
+  });
+  submitError.classList.remove("show");
+  document.getElementById("intro").classList.remove("hidden");
+  form.classList.remove("hidden");
+  document.getElementById("successPanel").classList.add("hidden");
+  document.getElementById("submitBar").classList.remove("hidden");
+}
+document.getElementById("restartBtn").addEventListener("click", resetForm);
+
+submitBtn.addEventListener("click", async () => {
+  submitError.classList.remove("show");
+  if (!validateAll()) { haptic("error"); return; }
+
+  setLoading(true);
+  try {
+    const payload = collectPayload();
+    await sendToTelegram(buildMessage(payload));
+    showSuccess();
+  } catch (e) {
+    submitError.classList.add("show");
+    haptic("error");
+  } finally {
+    setLoading(false);
+  }
+});
+
+/* ============================================================ INIT ============================================================ */
+initTelegram();
+</script>
+</body>
+</html>
