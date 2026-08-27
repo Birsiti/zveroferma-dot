@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Учёт инструмента — Любань</title>
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+(function(){
+  var tg = window.Telegram && window.Telegram.WebApp;
+  var scheme = (tg && tg.colorScheme) ? tg.colorScheme
+    : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  document.documentElement.setAttribute('data-theme', scheme);
+})();
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap');
+
+:root{
+  --radius:16px; --radius-sm:11px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+:root[data-theme="dark"]{
+  --bg:#111417; --surface:#1A1E22; --surface-2:#20252A; --surface-3:#262B31;
+  --ink:#EDEFF0; --ink-soft:#8C949C; --ink-faint:#565D64;
+  --accent:#2AABEE; --accent-dark:#1B8FCB; --accent-soft:rgba(42,171,238,.14);
+  --ok:#38A89D; --ok-soft:rgba(56,168,157,.14);
+  --danger:#E5626A; --danger-soft:rgba(229,98,106,.14);
+  --line:#2A2F35; --line-strong:#3A414A;
+  --shadow: 0 1px 0 rgba(255,255,255,.02) inset, 0 8px 20px -12px rgba(0,0,0,.5);
+}
+:root[data-theme="light"]{
+  --bg:#F4F6F8; --surface:#FFFFFF; --surface-2:#EEF1F4; --surface-3:#E4E8EC;
+  --ink:#171A1D; --ink-soft:#5B6570; --ink-faint:#98A1AA;
+  --accent:#2AABEE; --accent-dark:#1B8FCB; --accent-soft:rgba(42,171,238,.12);
+  --ok:#2E9B8F; --ok-soft:rgba(46,155,143,.12);
+  --danger:#D6505A; --danger-soft:rgba(214,80,90,.10);
+  --line:#E2E6EA; --line-strong:#CDD3D9;
+  --shadow: 0 1px 0 #fff inset, 0 8px 20px -14px rgba(20,25,30,.18);
+}
+
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; padding:0; background:var(--bg); color:var(--ink); font-family:'Inter',sans-serif;}
+body{padding-top:var(--safe-top);}
+
+.topbar{ display:flex; align-items:center; gap:10px; padding:14px 16px 4px; }
+.back{ width:34px; height:34px; border-radius:50%; background:var(--surface-2); border:1px solid var(--line); color:var(--ink-soft); display:flex; align-items:center; justify-content:center; text-decoration:none; font-size:16px; flex:none; }
+.topbar h1{ font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:19px; margin:0; display:flex; align-items:center; gap:7px; }
+.topbar p{ margin:2px 0 0; font-size:13px; color:var(--ink-soft); }
+
+.summary{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; padding:12px 16px 12px; }
+.sum-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-sm); padding:10px 6px; text-align:center; box-shadow:var(--shadow); }
+.sum-card .v{ font-family:'JetBrains Mono',monospace; font-weight:700; font-size:17px; }
+.sum-card .l{ font-size:10px; color:var(--ink-faint); margin-top:2px; letter-spacing:.01em; }
+.sum-card.warn .v{ color:var(--danger); }
+
+.search-wrap{ padding:0 16px 12px; }
+.search-wrap input{
+  width:100%; min-height:42px; background:var(--surface-2); border:1px solid var(--line);
+  border-radius:999px; padding:0 16px; color:var(--ink); font-size:14px; font-family:'Inter',sans-serif;
+}
+.search-wrap input::placeholder{ color:var(--ink-faint); }
+.search-wrap input:focus{ outline:none; border-color:var(--accent); }
+
+.chip-group{ display:flex; gap:8px; padding:0 16px 14px; flex-wrap:wrap; }
+.chip{
+  display:flex; align-items:center; justify-content:center;
+  min-height:36px; padding:0 14px; border-radius:999px;
+  background:var(--surface-2); border:1px solid var(--line);
+  color:var(--ink-soft); font-size:13px; font-weight:600; cursor:pointer;
+}
+.chip input{display:none;}
+.chip.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
+
+.list{ padding:0 16px; display:flex; flex-direction:column; gap:10px;
+  padding-bottom: max(96px, calc(56px + var(--safe-bottom))); }
+
+.card{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:14px; box-shadow:var(--shadow);
+}
+.card.is-overdue{ border-color:rgba(229,98,106,.4); }
+.card-top{ display:flex; align-items:flex-start; gap:10px; }
+.avatar{
+  width:34px; height:34px; border-radius:50%; flex:none;
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-weight:700; font-size:14px; font-family:'Chakra Petch',sans-serif;
+}
+.card-main{ flex:1; min-width:0; }
+.card-title{ font-weight:600; font-size:15px; }
+.card-sub{ font-size:12.5px; color:var(--ink-soft); margin-top:1px; }
+.badge{ font-size:11px; font-weight:600; padding:3px 8px; border-radius:999px; white-space:nowrap; flex:none; }
+.badge-active{ background:var(--accent-soft); color:var(--accent-dark); }
+.badge-overdue{ background:var(--danger-soft); color:var(--danger); }
+.badge-returned{ background:var(--ok-soft); color:var(--ok); }
+
+.card-dates{
+  display:flex; flex-wrap:wrap; gap:10px; margin-top:11px;
+  font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-soft);
+}
+.card-dates b{ color:var(--ink); font-weight:600; }
+.overdue-note{ margin-top:6px; font-size:12px; color:var(--danger); font-weight:600; }
+
+.card-actions{ margin-top:12px; display:flex; gap:8px; }
+.btn-return, .btn-extend{
+  min-height:38px; flex:1; border:1px solid var(--line-strong); background:var(--surface-2);
+  color:var(--ink); border-radius:var(--radius-sm); font-size:12.5px; font-weight:600;
+}
+.btn-return:active, .btn-extend:active{ background:var(--surface-3); }
+.btn-return{ color:var(--ok); }
+
+.empty{ text-align:center; color:var(--ink-faint); font-size:13px; padding:50px 20px; }
+.empty .ic{ font-size:30px; margin-bottom:8px; }
+
+.submit-bar{
+  position:fixed; left:0; right:0; bottom:0;
+  padding:12px 16px calc(12px + var(--safe-bottom));
+  background:var(--bg); border-top:1px solid var(--line);
+}
+.btn-main{
+  width:100%; min-height:48px; border:none; border-radius:var(--radius-sm);
+  background:var(--accent); color:#fff; font-family:'Chakra Petch',sans-serif;
+  font-weight:700; font-size:15px; letter-spacing:.02em;
+}
+.btn-main:active{ background:var(--accent-dark); }
+
+.sheet-overlay{
+  position:fixed; inset:0; background:rgba(0,0,0,.4);
+  opacity:0; visibility:hidden; transition:opacity .25s, visibility .25s;
+  z-index:10;
+}
+.sheet-overlay.open{ opacity:1; visibility:visible; }
+
+.sheet{
+  position:fixed; left:0; right:0; bottom:0; z-index:11;
+  background:var(--surface); border-radius:20px 20px 0 0;
+  padding:16px 16px calc(16px + var(--safe-bottom));
+  transform:translateY(110%); opacity:0; visibility:hidden;
+  transition:transform .25s, opacity .25s;
+  max-height:88vh; overflow-y:auto;
+}
+.sheet.open{ transform:translateY(0); opacity:1; visibility:visible; }
+
+.sheet-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.sheet-head h2{ font-family:'Chakra Petch',sans-serif; font-size:17px; margin:0; }
+.close-btn{
+  width:32px; height:32px; border-radius:50%; border:none; background:var(--surface-2);
+  color:var(--ink-soft); font-size:16px; display:flex; align-items:center; justify-content:center;
+}
+
+.field{ margin-bottom:14px; }
+.field label{
+  display:block; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600;
+  color:var(--ink-faint); text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px;
+}
+.field input{
+  width:100%; min-height:44px; background:var(--surface-2); border:1px solid var(--line);
+  border-radius:var(--radius-sm); padding:0 12px; color:var(--ink); font-size:15px;
+  font-family:'Inter',sans-serif;
+}
+.field input[type="date"]{ font-family:'JetBrains Mono',monospace; font-size:14px; }
+.field input:focus{ outline:none; border-color:var(--accent); }
+.field-hint{ font-size:11px; color:var(--ink-faint); margin-top:5px; }
+
+.gate{
+  min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; padding:24px;
+}
+.gate-icon{
+  width:56px; height:56px; border-radius:50%; background:var(--danger-soft);
+  display:flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:16px;
+}
+.gate h2{ font-family:'Chakra Petch',sans-serif; font-size:17px; margin:0 0 6px; }
+.gate p{ font-size:13px; color:var(--ink-soft); max-width:280px; margin:0; }
+
+.hidden{ display:none !important; }
+</style>
+</head>
+<body>
+
+<div class="gate hidden" id="gate">
+  <div class="gate-icon">🔒</div>
+  <h2>Доступ закрыт</h2>
+  <p>Эта страница только для своих. Если это ошибка — напишите ответственному.</p>
+</div>
+
+<div id="app" class="hidden">
+  <div class="topbar">
+    <a class="back" href="hub.html">←</a>
+    <div>
+      <h1>🔧 Инструмент</h1>
+      <p>Кто взял, что взял, когда вернуть</p>
+    </div>
+  </div>
+
+  <div class="summary" id="summary"></div>
+
+  <div class="search-wrap">
+    <input type="text" id="search" placeholder="Поиск по инструменту или имени...">
+  </div>
+
+  <div class="chip-group" id="filterGroup">
+    <label class="chip active" data-filter="open"><input type="radio" name="filter" checked>Не возвращено</label>
+    <label class="chip" data-filter="overdue"><input type="radio" name="filter">Просрочено</label>
+    <label class="chip" data-filter="all"><input type="radio" name="filter">Все</label>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <div class="submit-bar">
+    <button class="btn-main" id="openAddBtn">+ Записать выдачу</button>
+  </div>
+</div>
+
+<div class="sheet-overlay" id="overlay"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-head">
+    <h2>Новая выдача</h2>
+    <button class="close-btn" id="closeSheetBtn">✕</button>
+  </div>
+
+  <div class="field">
+    <label>Инструмент</label>
+    <input type="text" id="f_item" placeholder="Например: болгарка">
+  </div>
+
+  <div class="field">
+    <label>Кому</label>
+    <input type="text" id="f_who" placeholder="Имя">
+  </div>
+
+  <div class="field">
+    <label>Дата выдачи</label>
+    <input type="date" id="f_issued">
+  </div>
+
+  <div class="field">
+    <label>Дата подтверждения</label>
+    <input type="date" id="f_confirm">
+    <div class="field-hint">Авто: выдача + 3 мес. Можно поправить вручную.</div>
+  </div>
+
+  <button class="btn-main" id="saveBtn">Сохранить</button>
+</div>
+
+<script>
+const tg = window.Telegram ? window.Telegram.WebApp : null;
+
+function haptic(style) {
+  if (tg && tg.HapticFeedback) {
+    if (["success","error","warning"].includes(style)) tg.HapticFeedback.notificationOccurred(style);
+    else tg.HapticFeedback.impactOccurred(style || "light");
+  }
+}
+
+function applyTelegramTheme(){
+  const scheme = (tg && tg.colorScheme) ? tg.colorScheme
+    : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  document.documentElement.setAttribute('data-theme', scheme);
+  if (tg) {
+    const s = getComputedStyle(document.documentElement);
+    try { tg.setHeaderColor(s.getPropertyValue("--surface").trim()); tg.setBackgroundColor(s.getPropertyValue("--bg").trim()); } catch(e) {}
+  }
+}
+
+function confirmAsync(message){
+  return new Promise((resolve)=>{
+    if (tg && tg.showConfirm && tg.isVersionAtLeast && tg.isVersionAtLeast('6.2')) {
+      try { tg.showConfirm(message, resolve); return; } catch(e) {}
+    }
+    resolve(window.confirm(message));
+  });
+}
+
+function initTelegram() {
+  if (!tg) return;
+  tg.ready(); tg.expand();
+  applyTelegramTheme();
+  tg.onEvent && tg.onEvent('themeChanged', applyTelegramTheme);
+  if (tg.isVersionAtLeast && tg.isVersionAtLeast('7.7')) { try { tg.disableVerticalSwipes(); } catch(e) {} }
+}
+
+/* ===== ДОСТУП: заглушка whitelist ===============================
+   TODO: вписать сюда реальные Telegram ID Анатолия, Андрея, Дениса
+   (узнать через @userinfobot). Пока список пуст → тестовый режим.
+   На бэкенде (Apps Script) проверку продублировать обязательно.
+================================================================= */
+const WHITELIST_IDS = [
+  // 111111111, // Анатолий
+  // 222222222, // Андрей
+  // 333333333, // Денис
+];
+
+function checkAccess(){
+  if (WHITELIST_IDS.length === 0) return true;
+  const uid = tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id;
+  return WHITELIST_IDS.includes(uid);
+}
+
+/* ===== ДАННЫЕ: мок для демонстрации ==============================
+   Позже — загрузка из Google Sheet через Apps Script (GET, text/plain
+   чтобы не ловить CORS preflight). При сохранении — POST туда же,
+   Apps Script разошлёт уведомление всем троим через Bot API.
+================================================================= */
+let records = [
+  { id: 4, item: "Болгарка Bosch", who: "Сергей (наёмный)", issued: daysAgo(10), confirm: addMonths(daysAgo(10), 3), returned: null },
+  { id: 3, item: "Дрель Makita", who: "Виктор", issued: daysAgo(95), confirm: addMonths(daysAgo(95), 3), returned: null },
+  { id: 2, item: "Бензопила Stihl", who: "Николай", issued: daysAgo(40), confirm: addMonths(daysAgo(40), 3), returned: null },
+  { id: 1, item: "Триммер Husqvarna", who: "Николай", issued: daysAgo(20), confirm: addMonths(daysAgo(20), 3), returned: daysAgo(2) },
+];
+let nextId = 5;
+let currentFilter = "open";
+let searchQuery = "";
+
+const AVATAR_COLORS = ["#2AABEE","#B369D6","#E0952E","#38A89D","#E5626A","#C08A4E"];
+
+function daysAgo(n){ const d = new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); }
+function addMonths(dateStr, n){ const d = new Date(dateStr); d.setMonth(d.getMonth()+n); return d.toISOString().slice(0,10); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function fmt(dateStr){
+  if (!dateStr) return "—";
+  const [y,m,d] = dateStr.split("-");
+  return `${d}.${m}.${y}`;
+}
+function daysBetween(a, b){
+  return Math.round((new Date(a) - new Date(b)) / 86400000);
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function avatarColor(name){
+  let h = 0;
+  for (let i=0;i<name.length;i++) h = (h + name.charCodeAt(i)) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[h];
+}
+function initial(name){
+  return (name.trim()[0] || "?").toUpperCase();
+}
+
+function isOverdue(r){
+  return !r.returned && r.confirm && r.confirm < todayStr();
+}
+
+function renderSummary(){
+  const onHand = records.filter(r=>!r.returned).length;
+  const overdue = records.filter(isOverdue).length;
+  const total = records.length;
+  document.getElementById("summary").innerHTML = `
+    <div class="sum-card"><div class="v">${onHand}</div><div class="l">На руках</div></div>
+    <div class="sum-card ${overdue>0?'warn':''}"><div class="v">${overdue}</div><div class="l">Просрочено</div></div>
+    <div class="sum-card"><div class="v">${total}</div><div class="l">Всего выдач</div></div>
+  `;
+}
+
+function render(){
+  renderSummary();
+  const list = document.getElementById("list");
+  let items = records.slice();
+
+  if (searchQuery){
+    const q = searchQuery.toLowerCase();
+    items = items.filter(r => r.item.toLowerCase().includes(q) || r.who.toLowerCase().includes(q));
+  }
+
+  if (currentFilter === "open") items = items.filter(r => !r.returned);
+  if (currentFilter === "overdue") items = items.filter(isOverdue);
+
+  items.sort((a,b)=>{
+    const aActive = !a.returned, bActive = !b.returned;
+    if (aActive && !bActive) return -1;
+    if (!aActive && bActive) return 1;
+    if (aActive && bActive) return a.confirm.localeCompare(b.confirm);
+    return b.returned.localeCompare(a.returned);
+  });
+
+  if (items.length === 0){
+    list.innerHTML = `<div class="empty"><div class="ic">🧰</div>Ничего не найдено</div>`;
+    return;
+  }
+
+  list.innerHTML = items.map(r => {
+    let badge = `<span class="badge badge-active">Активно</span>`;
+    let overdueNote = "";
+    if (r.returned) {
+      badge = `<span class="badge badge-returned">Возвращено ${fmt(r.returned)}</span>`;
+    } else if (isOverdue(r)) {
+      badge = `<span class="badge badge-overdue">Просрочено</span>`;
+      overdueNote = `<div class="overdue-note">Просрочено на ${daysBetween(todayStr(), r.confirm)} дн.</div>`;
+    }
+
+    return `
+      <div class="card ${isOverdue(r) ? 'is-overdue' : ''}">
+        <div class="card-top">
+          <div class="avatar" style="background:${avatarColor(r.who)}">${initial(r.who)}</div>
+          <div class="card-main">
+            <div class="card-title">${escapeHtml(r.item)}</div>
+            <div class="card-sub">Кому: ${escapeHtml(r.who)}</div>
+          </div>
+          ${badge}
+        </div>
+        <div class="card-dates">
+          <div>Выдано: <b>${fmt(r.issued)}</b></div>
+          <div>Подтвердить: <b>${fmt(r.confirm)}</b></div>
+        </div>
+        ${overdueNote}
+        ${!r.returned ? `
+          <div class="card-actions">
+            <button class="btn-return" data-id="${r.id}">Отметить возврат</button>
+            <button class="btn-extend" data-id="${r.id}">+1 мес</button>
+          </div>` : ""}
+      </div>
+    `;
+  }).join("");
+
+  list.querySelectorAll(".btn-return").forEach(btn=>{
+    btn.addEventListener("click", async ()=>{
+      const id = Number(btn.dataset.id);
+      const ok = await confirmAsync("Отметить инструмент как возвращённый?");
+      if (!ok) return;
+      const rec = records.find(r=>r.id===id);
+      if (rec) rec.returned = todayStr();
+      haptic("success");
+      render();
+    });
+  });
+
+  list.querySelectorAll(".btn-extend").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const id = Number(btn.dataset.id);
+      const rec = records.find(r=>r.id===id);
+      if (rec) rec.confirm = addMonths(rec.confirm, 1);
+      haptic("light");
+      render();
+    });
+  });
+}
+
+document.getElementById("search").addEventListener("input", (e)=>{
+  searchQuery = e.target.value.trim();
+  render();
+});
+
+document.getElementById("filterGroup").addEventListener("click", (e)=>{
+  const chip = e.target.closest(".chip");
+  if (!chip) return;
+  document.querySelectorAll("#filterGroup .chip").forEach(c=>c.classList.remove("active"));
+  chip.classList.add("active");
+  chip.querySelector("input").checked = true;
+  currentFilter = chip.dataset.filter;
+  render();
+});
+
+const sheet = document.getElementById("sheet");
+const overlay = document.getElementById("overlay");
+
+function openSheet(){
+  document.getElementById("f_issued").value = todayStr();
+  document.getElementById("f_confirm").value = addMonths(todayStr(), 3);
+  document.getElementById("f_item").value = "";
+  document.getElementById("f_who").value = "";
+  sheet.classList.add("open");
+  overlay.classList.add("open");
+  if (tg && tg.BackButton) { tg.BackButton.show(); tg.BackButton.onClick(closeSheet); }
+  haptic("light");
+}
+function closeSheet(){
+  sheet.classList.remove("open");
+  overlay.classList.remove("open");
+  if (tg && tg.BackButton) { tg.BackButton.hide(); }
+}
+
+document.getElementById("openAddBtn").addEventListener("click", openSheet);
+document.getElementById("closeSheetBtn").addEventListener("click", closeSheet);
+overlay.addEventListener("click", closeSheet);
+
+document.getElementById("f_issued").addEventListener("change", (e)=>{
+  document.getElementById("f_confirm").value = addMonths(e.target.value, 3);
+});
+
+document.getElementById("saveBtn").addEventListener("click", ()=>{
+  const item = document.getElementById("f_item").value.trim();
+  const who = document.getElementById("f_who").value.trim();
+  const issued = document.getElementById("f_issued").value;
+  const confirm_ = document.getElementById("f_confirm").value;
+
+  if (!item || !who || !issued){
+    haptic("error");
+    return;
+  }
+
+  records.push({ id: nextId++, item, who, issued, confirm: confirm_, returned: null });
+  // TODO: здесь же — POST в Apps Script, который допишет строку в Sheet
+  // и разошлёт сообщение Анатолию, Андрею, Денису: кто кому что выдал.
+  closeSheet();
+  currentFilter = "open";
+  document.querySelectorAll("#filterGroup .chip").forEach(c=>c.classList.remove("active"));
+  document.querySelector('.chip[data-filter="open"]').classList.add("active");
+  haptic("success");
+  render();
+});
+
+(function start(){
+  initTelegram();
+  if (checkAccess()){
+    document.getElementById("app").classList.remove("hidden");
+    render();
+  } else {
+    document.getElementById("gate").classList.remove("hidden");
+  }
+})();
+</script>
+</body>
+</html>
