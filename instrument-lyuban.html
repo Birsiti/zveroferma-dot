@@ -1,3 +1,4 @@
+<!-- v4 · 29.08.2026 · переименование "Подтвердить" в "Ещё нужен" — точнее отражает суть действия (напомнили о возврате, человек попросил продлить) -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -86,8 +87,9 @@ body{padding-top:var(--safe-top);}
 
 .card{
   background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
-  padding:14px; box-shadow:var(--shadow);
+  padding:14px; box-shadow:var(--shadow); cursor:pointer;
 }
+.card:active{ background:var(--surface-2); }
 .card.is-overdue{ border-color:rgba(229,98,106,.4); }
 .card-top{ display:flex; align-items:flex-start; gap:10px; }
 .avatar{
@@ -176,6 +178,16 @@ body{padding-top:var(--safe-top);}
 .field input[type="date"]{ font-family:'JetBrains Mono',monospace; font-size:14px; }
 .field input:focus{ outline:none; border-color:var(--accent); }
 .field-hint{ font-size:11px; color:var(--ink-faint); margin-top:5px; }
+.field-row{ display:flex; gap:10px; }
+.field-row .field{ flex:1; }
+
+.detail-row{
+  display:flex; justify-content:space-between; align-items:flex-start; gap:12px;
+  padding:11px 0; border-bottom:1px solid var(--line); font-size:13.5px;
+}
+.detail-row:last-child{ border-bottom:none; }
+.detail-row span{ color:var(--ink-soft); flex:none; }
+.detail-row b{ text-align:right; font-weight:600; }
 
 .hidden{ display:none !important; }
 </style>
@@ -220,12 +232,20 @@ body{padding-top:var(--safe-top);}
 
   <div class="field">
     <label>Инструмент</label>
-    <input type="text" id="f_item" placeholder="Например: болгарка">
+    <input type="text" id="f_item" list="itemSuggestions" placeholder="Например: болгарка">
+    <datalist id="itemSuggestions"></datalist>
   </div>
 
-  <div class="field">
-    <label>Кому</label>
-    <input type="text" id="f_who" placeholder="Имя">
+  <div class="field-row">
+    <div class="field">
+      <label>Кому</label>
+      <input type="text" id="f_who" list="whoSuggestions" placeholder="Имя">
+      <datalist id="whoSuggestions"></datalist>
+    </div>
+    <div class="field" style="max-width:110px;">
+      <label>Кол-во</label>
+      <input type="number" inputmode="numeric" id="f_qty" placeholder="1">
+    </div>
   </div>
 
   <div class="field">
@@ -234,12 +254,41 @@ body{padding-top:var(--safe-top);}
   </div>
 
   <div class="field">
-    <label>Дата подтверждения</label>
+    <label>Когда напомнить</label>
     <input type="date" id="f_confirm">
     <div class="field-hint">Авто: выдача + 3 мес. Можно поправить вручную.</div>
   </div>
 
+  <div class="field">
+    <label>Комментарий</label>
+    <input type="text" id="f_comment" placeholder="Необязательно">
+  </div>
+
   <button class="btn-main" id="saveBtn">Сохранить</button>
+</div>
+
+<div class="sheet-overlay" id="returnOverlay"></div>
+<div class="sheet" id="returnSheet">
+  <div class="sheet-head">
+    <h2>Возврат</h2>
+    <button class="close-btn" id="closeReturnBtn">✕</button>
+  </div>
+  <div class="field">
+    <label>Сколько возвращают</label>
+    <input type="number" inputmode="numeric" id="f_returnQty">
+    <div class="field-hint" id="returnHint"></div>
+  </div>
+  <button class="btn-main" id="confirmReturnBtn">Подтвердить возврат</button>
+</div>
+
+<div class="sheet-overlay" id="detailOverlay"></div>
+<div class="sheet" id="detailSheet">
+  <div class="sheet-head">
+    <h2>Детали выдачи</h2>
+    <button class="close-btn" id="closeDetailBtn">✕</button>
+  </div>
+  <div id="detailBody"></div>
+  <button class="btn-main hidden" id="detailConfirmBtn" style="margin-top:6px;">Ещё нужен</button>
 </div>
 
 <script>
@@ -308,11 +357,11 @@ async function apiAdd(payload){
   });
   return res.json();
 }
-async function apiReturn(id, returned){
+async function apiReturn(id, qty, returned){
   const res = await fetch(APPS_SCRIPT_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ action:"return", id, returned })
+    body: JSON.stringify({ action:"return", id, qty, returned })
   });
   return res.json();
 }
@@ -324,6 +373,14 @@ async function apiExtend(id, confirm){
   });
   return res.json();
 }
+async function apiConfirm(id, confirmedAt, confirmedBy, confirm){
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action:"confirm", id, confirmedAt, confirmedBy, confirm })
+  });
+  return res.json();
+}
 
 /* ===== ДАННЫЕ ====================================================== */
 
@@ -331,12 +388,13 @@ let records = [];
 let nextId = 1;
 function seedMockRecords(){
   records = [
-    { id: 4, item: "Болгарка Bosch", who: "Сергей (наёмный)", issued: daysAgo(10), confirm: addMonths(daysAgo(10), 3), returned: null },
-    { id: 3, item: "Дрель Makita", who: "Виктор", issued: daysAgo(95), confirm: addMonths(daysAgo(95), 3), returned: null },
-    { id: 2, item: "Бензопила Stihl", who: "Николай", issued: daysAgo(40), confirm: addMonths(daysAgo(40), 3), returned: null },
-    { id: 1, item: "Триммер Husqvarna", who: "Николай", issued: daysAgo(20), confirm: addMonths(daysAgo(20), 3), returned: daysAgo(2) },
+    { id: 5, item: "Доски обрезные", who: "Виктор", issued: daysAgo(5), confirm: addMonths(daysAgo(5), 3), returned: null, by: "Денис", confirmedAt: null, confirmedBy: null, qty: 20, returnedQty: 8, comment: "Для забора" },
+    { id: 4, item: "Болгарка Bosch", who: "Сергей (наёмный)", issued: daysAgo(10), confirm: addMonths(daysAgo(10), 3), returned: null, by: "Денис", confirmedAt: null, confirmedBy: null, qty: 1, returnedQty: 0, comment: "" },
+    { id: 3, item: "Дрель Makita", who: "Виктор", issued: daysAgo(95), confirm: addMonths(daysAgo(95), 3), returned: null, by: "Андрей", confirmedAt: daysAgo(20), confirmedBy: "Андрей", qty: 1, returnedQty: 0, comment: "" },
+    { id: 2, item: "Бензопила Stihl", who: "Николай", issued: daysAgo(40), confirm: addMonths(daysAgo(40), 3), returned: null, by: "Анатолий", confirmedAt: null, confirmedBy: null, qty: 1, returnedQty: 0, comment: "" },
+    { id: 1, item: "Триммер Husqvarna", who: "Николай", issued: daysAgo(20), confirm: addMonths(daysAgo(20), 3), returned: daysAgo(2), by: "Денис", confirmedAt: null, confirmedBy: null, qty: 1, returnedQty: 1, comment: "" },
   ];
-  nextId = 5;
+  nextId = 6;
 }
 let currentFilter = "open";
 let searchQuery = "";
@@ -365,6 +423,13 @@ function avatarColor(name){
 }
 function initial(name){
   return (name.trim()[0] || "?").toUpperCase();
+}
+
+function updateSuggestions(){
+  const items = [...new Set(records.map(r=>r.item).filter(Boolean))];
+  const whos = [...new Set(records.map(r=>r.who).filter(Boolean))];
+  document.getElementById("itemSuggestions").innerHTML = items.map(v=>`<option value="${escapeHtml(v)}">`).join("");
+  document.getElementById("whoSuggestions").innerHTML = whos.map(v=>`<option value="${escapeHtml(v)}">`).join("");
 }
 
 function isOverdue(r){
@@ -422,6 +487,7 @@ function render(){
   }
 
   renderSummary();
+  updateSuggestions();
   const list = document.getElementById("list");
   let items = records.slice();
 
@@ -456,8 +522,12 @@ function render(){
       overdueNote = `<div class="overdue-note">Просрочено на ${daysBetween(todayStr(), r.confirm)} дн.</div>`;
     }
 
+    const qty = r.qty || 1;
+    const returnedQty = r.returnedQty || 0;
+    const remaining = qty - returnedQty;
+
     return `
-      <div class="card ${isOverdue(r) ? 'is-overdue' : ''}">
+      <div class="card ${isOverdue(r) ? 'is-overdue' : ''}" data-id="${r.id}">
         <div class="card-top">
           <div class="avatar" style="background:${avatarColor(r.who)}">${initial(r.who)}</div>
           <div class="card-main">
@@ -468,60 +538,58 @@ function render(){
         </div>
         <div class="card-dates">
           <div>Выдано: <b>${fmt(r.issued)}</b></div>
-          <div>Подтвердить: <b>${fmt(r.confirm)}</b></div>
+          <div>Напомнить: <b>${fmt(r.confirm)}</b></div>
+          ${qty > 1 ? `<div>Кол-во: <b>${returnedQty > 0 ? `${remaining} из ${qty}` : qty}</b></div>` : ""}
         </div>
         ${overdueNote}
         ${!r.returned ? `
           <div class="card-actions">
             <button class="btn-return" data-id="${r.id}">Отметить возврат</button>
-            <button class="btn-extend" data-id="${r.id}">+1 мес</button>
           </div>` : ""}
       </div>
     `;
   }).join("");
 
   list.querySelectorAll(".btn-return").forEach(btn=>{
-    btn.addEventListener("click", async ()=>{
-      const id = Number(btn.dataset.id);
-      const ok = await confirmAsync("Отметить инструмент как возвращённый?");
-      if (!ok) return;
-      const returnedDate = todayStr();
-      btn.disabled = true;
-      if (BACKEND_READY){
-        try {
-          const res = await apiReturn(id, returnedDate);
-          if (res.error){ haptic("error"); btn.disabled = false; return; }
-          await loadRecords();
-        } catch(e){ haptic("error"); btn.disabled = false; return; }
-      } else {
-        const rec = records.find(r=>r.id===id);
-        if (rec) rec.returned = returnedDate;
-      }
-      haptic("success");
-      render();
-    });
-  });
-
-  list.querySelectorAll(".btn-extend").forEach(btn=>{
-    btn.addEventListener("click", async ()=>{
+    btn.addEventListener("click", (evt)=>{
+      evt.stopPropagation();
       const id = Number(btn.dataset.id);
       const rec = records.find(r=>r.id===id);
       if (!rec) return;
-      const newConfirm = addMonths(rec.confirm, 1);
-      btn.disabled = true;
-      if (BACKEND_READY){
-        try {
-          const res = await apiExtend(id, newConfirm);
-          if (res.error){ haptic("error"); btn.disabled = false; return; }
-          await loadRecords();
-        } catch(e){ haptic("error"); btn.disabled = false; return; }
+      const remaining = (rec.qty || 1) - (rec.returnedQty || 0);
+      if (remaining <= 1) {
+        handleReturnDirect(id, remaining);
       } else {
-        rec.confirm = newConfirm;
+        openReturnSheet(id, remaining);
       }
-      haptic("light");
-      render();
     });
   });
+
+}
+
+async function handleReturnDirect(id, qty){
+  const ok = await confirmAsync("Отметить инструмент как возвращённый?");
+  if (!ok) return;
+  await doReturn(id, qty);
+}
+
+async function doReturn(id, qty){
+  const returnedDate = todayStr();
+  if (BACKEND_READY){
+    try {
+      const res = await apiReturn(id, qty, returnedDate);
+      if (res.error){ haptic("error"); return; }
+      await loadRecords();
+    } catch(e){ haptic("error"); return; }
+  } else {
+    const rec = records.find(r=>r.id===id);
+    if (rec) {
+      rec.returnedQty = (rec.returnedQty || 0) + qty;
+      if (rec.returnedQty >= (rec.qty || 1)) rec.returned = returnedDate;
+    }
+  }
+  haptic("success");
+  render();
 }
 
 document.getElementById("search").addEventListener("input", (e)=>{
@@ -539,6 +607,120 @@ document.getElementById("filterGroup").addEventListener("click", (e)=>{
   render();
 });
 
+/* ===== Детальный экран выдачи ===================================== */
+const detailSheet = document.getElementById("detailSheet");
+const detailOverlay = document.getElementById("detailOverlay");
+const detailConfirmBtn = document.getElementById("detailConfirmBtn");
+
+document.getElementById("list").addEventListener("click", (e)=>{
+  if (e.target.closest("button")) return; // клики по кнопкам карточки сюда не долетают
+  const card = e.target.closest(".card");
+  if (!card) return;
+  openDetail(Number(card.dataset.id));
+});
+
+function openDetail(id){
+  const r = records.find(x=>x.id===id);
+  if (!r) return;
+
+  const contactInfo = r.confirmedAt
+    ? `${fmt(r.confirmedAt)}${r.confirmedBy ? " — " + escapeHtml(r.confirmedBy) : ""} (ещё нужен)`
+    : "Ещё не связывались";
+
+  document.getElementById("detailBody").innerHTML = `
+    <div class="detail-row"><span>Инструмент</span><b>${escapeHtml(r.item)}</b></div>
+    <div class="detail-row"><span>Кому</span><b>${escapeHtml(r.who)}</b></div>
+    <div class="detail-row"><span>Кто выдал</span><b>${escapeHtml(r.by || "—")}</b></div>
+    <div class="detail-row"><span>Дата выдачи</span><b>${fmt(r.issued)}</b></div>
+    <div class="detail-row"><span>Напомнить до</span><b>${fmt(r.confirm)}</b></div>
+    <div class="detail-row"><span>Последний контакт</span><b>${contactInfo}</b></div>
+    ${(r.qty || 1) > 1 ? `<div class="detail-row"><span>Количество</span><b>${(r.returnedQty||0)} возвращено из ${r.qty}</b></div>` : ""}
+    ${r.comment ? `<div class="detail-row"><span>Комментарий</span><b>${escapeHtml(r.comment)}</b></div>` : ""}
+    ${r.returned ? `<div class="detail-row"><span>Возвращено</span><b>${fmt(r.returned)}</b></div>` : ""}
+  `;
+
+  if (r.returned) {
+    detailConfirmBtn.classList.add("hidden");
+  } else {
+    detailConfirmBtn.classList.remove("hidden");
+    detailConfirmBtn.disabled = false;
+    detailConfirmBtn.textContent = "Ещё нужен";
+    detailConfirmBtn.onclick = () => handleConfirm(id);
+  }
+
+  detailSheet.classList.add("open");
+  detailOverlay.classList.add("open");
+  if (tg && tg.BackButton) { tg.BackButton.show(); tg.BackButton.onClick(closeDetailSheet); }
+  haptic("light");
+}
+
+function closeDetailSheet(){
+  detailSheet.classList.remove("open");
+  detailOverlay.classList.remove("open");
+  if (tg && tg.BackButton) tg.BackButton.hide();
+}
+
+document.getElementById("closeDetailBtn").addEventListener("click", closeDetailSheet);
+detailOverlay.addEventListener("click", closeDetailSheet);
+
+/* ===== Возврат с указанием количества ============================= */
+const returnSheet = document.getElementById("returnSheet");
+const returnOverlay = document.getElementById("returnOverlay");
+let returnTargetId = null;
+
+function openReturnSheet(id, remaining){
+  returnTargetId = id;
+  document.getElementById("f_returnQty").value = remaining;
+  document.getElementById("returnHint").textContent = `Осталось не возвращено: ${remaining}`;
+  returnSheet.classList.add("open");
+  returnOverlay.classList.add("open");
+  if (tg && tg.BackButton) { tg.BackButton.show(); tg.BackButton.onClick(closeReturnSheet); }
+  haptic("light");
+}
+function closeReturnSheet(){
+  returnSheet.classList.remove("open");
+  returnOverlay.classList.remove("open");
+  if (tg && tg.BackButton) tg.BackButton.hide();
+}
+document.getElementById("closeReturnBtn").addEventListener("click", closeReturnSheet);
+returnOverlay.addEventListener("click", closeReturnSheet);
+document.getElementById("confirmReturnBtn").addEventListener("click", async ()=>{
+  const qty = parseInt(document.getElementById("f_returnQty").value, 10);
+  if (!qty || qty < 1){ haptic("error"); return; }
+  const id = returnTargetId;
+  closeReturnSheet();
+  await doReturn(id, qty);
+});
+
+async function handleConfirm(id){
+  const rec = records.find(r=>r.id===id);
+  if (!rec) return;
+  const ok = await confirmAsync("Связались, инструмент пока нужен — продлить срок?");
+  if (!ok) return;
+
+  const confirmedAt = todayStr();
+  const confirmedBy = currentUserName();
+  const newConfirm = addMonths(todayStr(), 3);
+
+  detailConfirmBtn.disabled = true;
+
+  if (BACKEND_READY){
+    try {
+      const res = await apiConfirm(id, confirmedAt, confirmedBy, newConfirm);
+      if (res.error){ haptic("error"); detailConfirmBtn.disabled = false; return; }
+      await loadRecords();
+    } catch(e){ haptic("error"); detailConfirmBtn.disabled = false; return; }
+  } else {
+    rec.confirmedAt = confirmedAt;
+    rec.confirmedBy = confirmedBy;
+    rec.confirm = newConfirm;
+  }
+
+  haptic("success");
+  closeDetailSheet();
+  render();
+}
+
 const sheet = document.getElementById("sheet");
 const overlay = document.getElementById("overlay");
 
@@ -547,6 +729,8 @@ function openSheet(){
   document.getElementById("f_confirm").value = addMonths(todayStr(), 3);
   document.getElementById("f_item").value = "";
   document.getElementById("f_who").value = "";
+  document.getElementById("f_qty").value = "";
+  document.getElementById("f_comment").value = "";
   sheet.classList.add("open");
   overlay.classList.add("open");
   if (tg && tg.BackButton) { tg.BackButton.show(); tg.BackButton.onClick(closeSheet); }
@@ -571,6 +755,8 @@ document.getElementById("saveBtn").addEventListener("click", async ()=>{
   const who = document.getElementById("f_who").value.trim();
   const issued = document.getElementById("f_issued").value;
   const confirm_ = document.getElementById("f_confirm").value;
+  const qty = parseInt(document.getElementById("f_qty").value, 10) || 1;
+  const comment = document.getElementById("f_comment").value.trim();
 
   if (!item || !who || !issued){
     haptic("error");
@@ -582,7 +768,7 @@ document.getElementById("saveBtn").addEventListener("click", async ()=>{
 
   if (BACKEND_READY){
     try {
-      const res = await apiAdd({ item, who, issued, confirm: confirm_ });
+      const res = await apiAdd({ item, who, issued, confirm: confirm_, qty, comment });
       if (res.error){ haptic("error"); saveBtn.disabled = false; return; }
     } catch(e){ haptic("error"); saveBtn.disabled = false; return; }
     closeSheet();
@@ -592,7 +778,7 @@ document.getElementById("saveBtn").addEventListener("click", async ()=>{
     haptic("success");
     await loadRecords();
   } else {
-    records.push({ id: nextId++, item, who, issued, confirm: confirm_, returned: null });
+    records.push({ id: nextId++, item, who, issued, confirm: confirm_, returned: null, by: currentUserName(), confirmedAt: null, confirmedBy: null, qty, returnedQty: 0, comment });
     closeSheet();
     currentFilter = "open";
     document.querySelectorAll("#filterGroup .chip").forEach(c=>c.classList.remove("active"));
