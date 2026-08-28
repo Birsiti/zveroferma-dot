@@ -52,6 +52,11 @@ body{padding-top:var(--safe-top);}
 .topbar h1{ font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:19px; margin:0; display:flex; align-items:center; gap:7px; }
 .topbar p{ margin:2px 0 0; font-size:13px; color:var(--ink-soft); }
 
+.demo-banner{
+  margin:0 16px 12px; padding:8px 12px; border-radius:var(--radius-sm);
+  background:var(--accent-soft); color:var(--accent-dark); font-size:12px; font-weight:600;
+}
+
 .summary{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; padding:12px 16px 12px; }
 .sum-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-sm); padding:10px 6px; text-align:center; box-shadow:var(--shadow); }
 .sum-card .v{ font-family:'JetBrains Mono',monospace; font-weight:700; font-size:17px; }
@@ -112,9 +117,14 @@ body{padding-top:var(--safe-top);}
 }
 .btn-return:active, .btn-extend:active{ background:var(--surface-3); }
 .btn-return{ color:var(--ok); }
+.btn-return:disabled, .btn-extend:disabled{ opacity:.5; }
 
 .empty{ text-align:center; color:var(--ink-faint); font-size:13px; padding:50px 20px; }
 .empty .ic{ font-size:30px; margin-bottom:8px; }
+.empty .retry{
+  margin-top:12px; display:inline-block; padding:8px 16px; border-radius:999px;
+  background:var(--surface-2); border:1px solid var(--line); color:var(--ink); font-size:12.5px; font-weight:600;
+}
 
 .submit-bar{
   position:fixed; left:0; right:0; bottom:0;
@@ -127,6 +137,7 @@ body{padding-top:var(--safe-top);}
   font-weight:700; font-size:15px; letter-spacing:.02em;
 }
 .btn-main:active{ background:var(--accent-dark); }
+.btn-main:disabled{ opacity:.6; }
 
 .sheet-overlay{
   position:fixed; inset:0; background:rgba(0,0,0,.4);
@@ -166,29 +177,12 @@ body{padding-top:var(--safe-top);}
 .field input:focus{ outline:none; border-color:var(--accent); }
 .field-hint{ font-size:11px; color:var(--ink-faint); margin-top:5px; }
 
-.gate{
-  min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
-  text-align:center; padding:24px;
-}
-.gate-icon{
-  width:56px; height:56px; border-radius:50%; background:var(--danger-soft);
-  display:flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:16px;
-}
-.gate h2{ font-family:'Chakra Petch',sans-serif; font-size:17px; margin:0 0 6px; }
-.gate p{ font-size:13px; color:var(--ink-soft); max-width:280px; margin:0; }
-
 .hidden{ display:none !important; }
 </style>
 </head>
 <body>
 
-<div class="gate hidden" id="gate">
-  <div class="gate-icon">🔒</div>
-  <h2>Доступ закрыт</h2>
-  <p>Эта страница только для своих. Если это ошибка — напишите ответственному.</p>
-</div>
-
-<div id="app" class="hidden">
+<div id="app">
   <div class="topbar">
     <a class="back" href="hub.html">←</a>
     <div>
@@ -196,6 +190,8 @@ body{padding-top:var(--safe-top);}
       <p>Кто взял, что взял, когда вернуть</p>
     </div>
   </div>
+
+  <div class="demo-banner hidden" id="demoBanner">Демо-режим: бэкенд ещё не подключён, изменения не сохраняются</div>
 
   <div class="summary" id="summary"></div>
 
@@ -250,6 +246,12 @@ body{padding-top:var(--safe-top);}
 <script>
 const tg = window.Telegram ? window.Telegram.WebApp : null;
 
+/* Доступ к самой кнопке этого Mini App уже ограничен тегом в LEADTEX —
+   отдельная проверка внутри страницы не нужна, поэтому её тут нет. */
+
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzx2d6GZ-ERLAzcd7HpjRofwF5DYE03Bj9fIk_U0kyT4if7b5cF6JJlMB8nJUhalZki/exec";
+const BACKEND_READY = !APPS_SCRIPT_URL.includes("ВСТАВЬ");
+
 function haptic(style) {
   if (tg && tg.HapticFeedback) {
     if (["success","error","warning"].includes(style)) tg.HapticFeedback.notificationOccurred(style);
@@ -284,28 +286,48 @@ function initTelegram() {
   if (tg.isVersionAtLeast && tg.isVersionAtLeast('7.7')) { try { tg.disableVerticalSwipes(); } catch(e) {} }
 }
 
-/* ===== ДОСТУП: заглушка whitelist ===============================
-   TODO: вписать сюда реальные Telegram ID Анатолия, Андрея, Дениса
-   (узнать через @userinfobot). Пока список пуст → тестовый режим.
-   На бэкенде (Apps Script) проверку продублировать обязательно.
-================================================================= */
-const WHITELIST_IDS = [
-  // 111111111, // Анатолий
-  // 222222222, // Андрей
-  // 333333333, // Денис
-];
-
-function checkAccess(){
-  if (WHITELIST_IDS.length === 0) return true;
-  const uid = tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id;
-  return WHITELIST_IDS.includes(uid);
+function currentUserName(){
+  const u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+  return u ? (u.first_name || u.username || "Кто-то из своих") : "Кто-то из своих";
 }
 
-/* ===== ДАННЫЕ: мок для демонстрации ==============================
-   Позже — загрузка из Google Sheet через Apps Script (GET, text/plain
-   чтобы не ловить CORS preflight). При сохранении — POST туда же,
-   Apps Script разошлёт уведомление всем троим через Bot API.
+/* ===== API =========================================================
+   Без проверки подлинности — доступ к кнопке уже отфильтрован в LEADTEX.
+   "by" передаётся просто как имя из Telegram, бэкенд использует его
+   только для текста уведомления, не для допуска.
 ================================================================= */
+
+async function apiList(){
+  const res = await fetch(APPS_SCRIPT_URL + "?action=list");
+  return res.json();
+}
+async function apiAdd(payload){
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(Object.assign({ action:"add", by: currentUserName() }, payload))
+  });
+  return res.json();
+}
+async function apiReturn(id, returned){
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action:"return", id, returned })
+  });
+  return res.json();
+}
+async function apiExtend(id, confirm){
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action:"extend", id, confirm })
+  });
+  return res.json();
+}
+
+/* ===== ДАННЫЕ ====================================================== */
+
 let records = [
   { id: 4, item: "Болгарка Bosch", who: "Сергей (наёмный)", issued: daysAgo(10), confirm: addMonths(daysAgo(10), 3), returned: null },
   { id: 3, item: "Дрель Makita", who: "Виктор", issued: daysAgo(95), confirm: addMonths(daysAgo(95), 3), returned: null },
@@ -315,6 +337,7 @@ let records = [
 let nextId = 5;
 let currentFilter = "open";
 let searchQuery = "";
+let isLoading = false;
 
 const AVATAR_COLORS = ["#2AABEE","#B369D6","#E0952E","#38A89D","#E5626A","#C08A4E"];
 
@@ -345,6 +368,38 @@ function isOverdue(r){
   return !r.returned && r.confirm && r.confirm < todayStr();
 }
 
+async function loadRecords(){
+  if (!BACKEND_READY){
+    render();
+    return;
+  }
+  isLoading = true;
+  render();
+  try {
+    const data = await apiList();
+    if (data.error){
+      renderError("Ошибка сервера: " + data.error);
+      return;
+    }
+    records = data.records.map(r => Object.assign({}, r, { id: Number(r.id) }));
+  } catch(err){
+    renderError("Нет связи с таблицей. Проверь интернет и попробуй ещё раз.");
+    return;
+  } finally {
+    isLoading = false;
+  }
+  render();
+}
+
+function renderError(message){
+  isLoading = false;
+  document.getElementById("summary").innerHTML = "";
+  document.getElementById("list").innerHTML =
+    `<div class="empty"><div class="ic">⚠️</div>${escapeHtml(message)}<div><span class="retry" id="retryBtn">Повторить</span></div></div>`;
+  const retry = document.getElementById("retryBtn");
+  if (retry) retry.addEventListener("click", loadRecords);
+}
+
 function renderSummary(){
   const onHand = records.filter(r=>!r.returned).length;
   const overdue = records.filter(isOverdue).length;
@@ -357,6 +412,12 @@ function renderSummary(){
 }
 
 function render(){
+  if (isLoading){
+    document.getElementById("summary").innerHTML = "";
+    document.getElementById("list").innerHTML = `<div class="empty">Загрузка...</div>`;
+    return;
+  }
+
   renderSummary();
   const list = document.getElementById("list");
   let items = records.slice();
@@ -421,18 +482,39 @@ function render(){
       const id = Number(btn.dataset.id);
       const ok = await confirmAsync("Отметить инструмент как возвращённый?");
       if (!ok) return;
-      const rec = records.find(r=>r.id===id);
-      if (rec) rec.returned = todayStr();
+      const returnedDate = todayStr();
+      btn.disabled = true;
+      if (BACKEND_READY){
+        try {
+          const res = await apiReturn(id, returnedDate);
+          if (res.error){ haptic("error"); btn.disabled = false; return; }
+          await loadRecords();
+        } catch(e){ haptic("error"); btn.disabled = false; return; }
+      } else {
+        const rec = records.find(r=>r.id===id);
+        if (rec) rec.returned = returnedDate;
+      }
       haptic("success");
       render();
     });
   });
 
   list.querySelectorAll(".btn-extend").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
+    btn.addEventListener("click", async ()=>{
       const id = Number(btn.dataset.id);
       const rec = records.find(r=>r.id===id);
-      if (rec) rec.confirm = addMonths(rec.confirm, 1);
+      if (!rec) return;
+      const newConfirm = addMonths(rec.confirm, 1);
+      btn.disabled = true;
+      if (BACKEND_READY){
+        try {
+          const res = await apiExtend(id, newConfirm);
+          if (res.error){ haptic("error"); btn.disabled = false; return; }
+          await loadRecords();
+        } catch(e){ haptic("error"); btn.disabled = false; return; }
+      } else {
+        rec.confirm = newConfirm;
+      }
       haptic("light");
       render();
     });
@@ -481,7 +563,7 @@ document.getElementById("f_issued").addEventListener("change", (e)=>{
   document.getElementById("f_confirm").value = addMonths(e.target.value, 3);
 });
 
-document.getElementById("saveBtn").addEventListener("click", ()=>{
+document.getElementById("saveBtn").addEventListener("click", async ()=>{
   const item = document.getElementById("f_item").value.trim();
   const who = document.getElementById("f_who").value.trim();
   const issued = document.getElementById("f_issued").value;
@@ -492,25 +574,36 @@ document.getElementById("saveBtn").addEventListener("click", ()=>{
     return;
   }
 
-  records.push({ id: nextId++, item, who, issued, confirm: confirm_, returned: null });
-  // TODO: здесь же — POST в Apps Script, который допишет строку в Sheet
-  // и разошлёт сообщение Анатолию, Андрею, Денису: кто кому что выдал.
-  closeSheet();
-  currentFilter = "open";
-  document.querySelectorAll("#filterGroup .chip").forEach(c=>c.classList.remove("active"));
-  document.querySelector('.chip[data-filter="open"]').classList.add("active");
-  haptic("success");
-  render();
+  const saveBtn = document.getElementById("saveBtn");
+  saveBtn.disabled = true;
+
+  if (BACKEND_READY){
+    try {
+      const res = await apiAdd({ item, who, issued, confirm: confirm_ });
+      if (res.error){ haptic("error"); saveBtn.disabled = false; return; }
+    } catch(e){ haptic("error"); saveBtn.disabled = false; return; }
+    closeSheet();
+    currentFilter = "open";
+    document.querySelectorAll("#filterGroup .chip").forEach(c=>c.classList.remove("active"));
+    document.querySelector('.chip[data-filter="open"]').classList.add("active");
+    haptic("success");
+    await loadRecords();
+  } else {
+    records.push({ id: nextId++, item, who, issued, confirm: confirm_, returned: null });
+    closeSheet();
+    currentFilter = "open";
+    document.querySelectorAll("#filterGroup .chip").forEach(c=>c.classList.remove("active"));
+    document.querySelector('.chip[data-filter="open"]').classList.add("active");
+    haptic("success");
+    render();
+  }
+  saveBtn.disabled = false;
 });
 
 (function start(){
   initTelegram();
-  if (checkAccess()){
-    document.getElementById("app").classList.remove("hidden");
-    render();
-  } else {
-    document.getElementById("gate").classList.remove("hidden");
-  }
+  if (!BACKEND_READY) document.getElementById("demoBanner").classList.remove("hidden");
+  loadRecords();
 })();
 </script>
 </body>
