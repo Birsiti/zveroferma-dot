@@ -184,7 +184,6 @@ body{padding-top:var(--safe-top);}
 
 <div id="app">
   <div class="topbar">
-    <a class="back" href="hub.html">←</a>
     <div>
       <h1>🔧 Инструмент</h1>
       <p>Кто взял, что взял, когда вернуть</p>
@@ -328,13 +327,17 @@ async function apiExtend(id, confirm){
 
 /* ===== ДАННЫЕ ====================================================== */
 
-let records = [
-  { id: 4, item: "Болгарка Bosch", who: "Сергей (наёмный)", issued: daysAgo(10), confirm: addMonths(daysAgo(10), 3), returned: null },
-  { id: 3, item: "Дрель Makita", who: "Виктор", issued: daysAgo(95), confirm: addMonths(daysAgo(95), 3), returned: null },
-  { id: 2, item: "Бензопила Stihl", who: "Николай", issued: daysAgo(40), confirm: addMonths(daysAgo(40), 3), returned: null },
-  { id: 1, item: "Триммер Husqvarna", who: "Николай", issued: daysAgo(20), confirm: addMonths(daysAgo(20), 3), returned: daysAgo(2) },
-];
-let nextId = 5;
+let records = [];
+let nextId = 1;
+function seedMockRecords(){
+  records = [
+    { id: 4, item: "Болгарка Bosch", who: "Сергей (наёмный)", issued: daysAgo(10), confirm: addMonths(daysAgo(10), 3), returned: null },
+    { id: 3, item: "Дрель Makita", who: "Виктор", issued: daysAgo(95), confirm: addMonths(daysAgo(95), 3), returned: null },
+    { id: 2, item: "Бензопила Stihl", who: "Николай", issued: daysAgo(40), confirm: addMonths(daysAgo(40), 3), returned: null },
+    { id: 1, item: "Триммер Husqvarna", who: "Николай", issued: daysAgo(20), confirm: addMonths(daysAgo(20), 3), returned: daysAgo(2) },
+  ];
+  nextId = 5;
+}
 let currentFilter = "open";
 let searchQuery = "";
 let isLoading = false;
@@ -602,7 +605,10 @@ document.getElementById("saveBtn").addEventListener("click", async ()=>{
 
 (function start(){
   initTelegram();
-  if (!BACKEND_READY) document.getElementById("demoBanner").classList.remove("hidden");
+  if (!BACKEND_READY) {
+    document.getElementById("demoBanner").classList.remove("hidden");
+    seedMockRecords();
+  }
   loadRecords();
 })();
 </script>
