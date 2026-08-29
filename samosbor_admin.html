@@ -1,5 +1,5 @@
-<!-- v2 · 29.08.2026 · бренд Звероферма.BY, Telegram WebApp SDK, единый бэкенд «Ферма»,
-     секция «Записавшиеся» (отметить «пришёл» / отменить), футер TG-Studio -->
+<!-- v4 · 30.08.2026 · дата/время — нативные карусельные пикеры (type=date/time), цена — число + «руб/кг»,
+     пароль убран, текст крупнее/контрастнее, дата в списке «5 сентября — суббота», TG-Studio убран -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -25,8 +25,8 @@
     --tg:#2AABEE;
     --tg-dark:#1F93CF;
     --ink:#F7F3EB;
-    --ink-soft:rgba(247,243,235,0.72);
-    --ink-faint:rgba(247,243,235,0.48);
+    --ink-soft:rgba(247,243,235,0.86);
+    --ink-faint:rgba(247,243,235,0.66);
     --ok:#7BC67A;
     --danger:#E8A36B;
     --safe-top:env(safe-area-inset-top,0px);
@@ -48,7 +48,7 @@
 
   .eyebrow{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;}
   h1{font-family:'Playfair Display',Georgia,serif;font-size:24px;font-weight:800;margin:0 0 4px;color:var(--cream);}
-  .subtitle{font-size:13px;color:var(--ink-soft);margin:0 0 22px;}
+  .subtitle{font-size:13.5px;color:var(--ink-soft);margin:0 0 22px;}
 
   .card{
     background:var(--card-bg);
@@ -59,25 +59,28 @@
     backdrop-filter:blur(6px);
   }
   .card h2{
-    font-size:12px;font-weight:700;margin:0 0 14px;color:var(--gold);
+    font-size:13px;font-weight:700;margin:0 0 14px;color:var(--gold);
     text-transform:uppercase;letter-spacing:.06em;
   }
 
   .field{margin-bottom:14px;}
   .field:last-child{margin-bottom:0;}
-  label{display:block;font-size:11px;font-weight:700;color:var(--ink-faint);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;}
-  input[type=text], input[type=number], input[type=password]{
-    width:100%;padding:12px 13px;
+  label{display:block;font-size:12px;font-weight:700;color:var(--ink-faint);margin-bottom:7px;text-transform:uppercase;letter-spacing:.04em;}
+  input[type=text], input[type=number], input[type=date], input[type=time]{
+    width:100%;padding:13px 13px;min-height:48px;
     border:1.5px solid var(--input-border);border-radius:11px;
-    font-size:15px;font-family:inherit;color:var(--cream);
+    font-size:16px;font-family:inherit;color:var(--cream);
     background:var(--input-bg);outline:none;color-scheme:dark;
   }
   input:focus{border-color:var(--gold);}
+  .price-row{display:flex;align-items:center;gap:10px;}
+  .price-row input{flex:1;}
+  .price-suffix{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--ink-soft);flex:none;}
 
   .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--card-border);}
   .toggle-row:last-child{border-bottom:none;}
-  .toggle-label{font-size:15px;font-weight:700;color:var(--cream);}
-  .toggle-hint{font-size:12px;color:var(--ink-faint);margin-top:2px;}
+  .toggle-label{font-size:16px;font-weight:700;color:var(--cream);}
+  .toggle-hint{font-size:12.5px;color:var(--ink-soft);margin-top:3px;}
 
   .switch{position:relative;width:48px;height:28px;flex:none;}
   .switch input{opacity:0;width:0;height:0;}
@@ -106,31 +109,31 @@
   .loading{text-align:center;color:var(--ink-soft);font-size:13px;padding:40px 0;}
 
   /* Записавшиеся */
-  .reg-summary{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--cream);margin-bottom:12px;}
+  .reg-summary{font-family:'JetBrains Mono',monospace;font-size:14.5px;color:var(--cream);margin-bottom:14px;line-height:1.5;}
   .reg-summary b{color:var(--gold);}
   .reg-item{
     display:flex;align-items:flex-start;gap:10px;
-    padding:12px 0;border-bottom:1px solid var(--card-border);
+    padding:13px 0;border-bottom:1px solid var(--card-border);
   }
   .reg-item:last-child{border-bottom:none;}
   .reg-main{flex:1;min-width:0;}
-  .reg-name{font-size:14.5px;font-weight:700;color:var(--cream);}
-  .reg-name.off{opacity:.45;text-decoration:line-through;}
-  .reg-meta{font-size:12px;color:var(--ink-faint);font-family:'JetBrains Mono',monospace;margin-top:2px;}
-  .reg-badge{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;white-space:nowrap;flex:none;margin-top:2px;}
-  .reg-badge.came{background:rgba(123,198,122,0.18);color:var(--green-light);}
-  .reg-badge.cancelled{background:rgba(232,163,107,0.16);color:var(--danger);}
-  .reg-actions{display:flex;gap:7px;margin-top:8px;}
+  .reg-name{font-size:16px;font-weight:700;color:var(--cream);}
+  .reg-name.off{opacity:.5;text-decoration:line-through;}
+  .reg-meta{font-size:13px;color:var(--ink-soft);font-family:'JetBrains Mono',monospace;margin-top:3px;}
+  .reg-badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap;flex:none;margin-top:2px;}
+  .reg-badge.came{background:rgba(123,198,122,0.22);color:var(--green-light);}
+  .reg-badge.cancelled{background:rgba(232,163,107,0.2);color:var(--danger);}
+  .reg-actions{display:flex;gap:7px;margin-top:9px;}
   .reg-btn{
-    flex:1;min-height:34px;padding:0 10px;border:1px solid var(--input-border);background:var(--input-bg);
-    color:var(--cream);border-radius:9px;font-size:12px;font-weight:700;font-family:'Nunito',sans-serif;
+    flex:1;min-height:38px;padding:0 10px;border:1px solid var(--input-border);background:var(--input-bg);
+    color:var(--cream);border-radius:9px;font-size:13px;font-weight:700;font-family:'Nunito',sans-serif;
   }
   .reg-btn:active{background:rgba(255,255,255,0.12);}
-  .reg-btn.inline{flex:none;min-height:26px;font-size:11px;}
-  .reg-empty{color:var(--ink-faint);font-size:13px;text-align:center;padding:14px 0;}
-  .reg-sec{margin-top:18px;}
-  .reg-sec-h{font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.05em;
-    margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .reg-btn.inline{flex:none;min-height:28px;font-size:12px;}
+  .reg-empty{color:var(--ink-faint);font-size:13.5px;text-align:center;padding:14px 0;}
+  .reg-sec{margin-top:20px;}
+  .reg-sec-h{font-size:12px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.05em;
+    margin-bottom:7px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
   .reg-toggle{cursor:pointer;}
 
   .hidden{display:none !important;}
@@ -166,16 +169,19 @@
     <div class="card">
       <h2>Параметры заезда</h2>
       <div class="field">
-        <label for="date">Дата</label>
-        <input type="text" id="date" placeholder="25 июля, сб" autocomplete="off">
+        <label for="date">Дата заезда</label>
+        <input type="date" id="date">
       </div>
       <div class="field">
-        <label for="time">Время</label>
-        <input type="text" id="time" placeholder="с 10:00" autocomplete="off">
+        <label for="time">Время начала</label>
+        <input type="time" id="time">
       </div>
       <div class="field">
         <label for="price">Цена</label>
-        <input type="text" id="price" placeholder="15 руб/кг" autocomplete="off">
+        <div class="price-row">
+          <input type="number" id="price" inputmode="decimal" min="0" step="0.5" placeholder="15">
+          <span class="price-suffix">руб/кг</span>
+        </div>
       </div>
       <div class="field">
         <label>Лимит мест (заявок на заезд)</label>
@@ -184,14 +190,6 @@
           <div class="val" id="limitVal">10</div>
           <button type="button" data-act="inc" aria-label="Больше">+</button>
         </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Пароль</h2>
-      <div class="field">
-        <label for="password">Пароль администратора</label>
-        <input type="password" id="password" placeholder="если задан на сервере" autocomplete="off">
       </div>
     </div>
 
@@ -260,15 +258,26 @@ document.getElementById('limitStepper').addEventListener('click', (e)=>{
   haptic('light');
 });
 
+/* ---- дата: ISO → «5 сентября — суббота» ---- */
+const RU_MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const RU_WD = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
+function fmtDate(iso){
+  const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return String(iso || '');
+  const d = new Date(+m[1], +m[2] - 1, +m[3]);
+  return d.getDate() + ' ' + RU_MONTHS[d.getMonth()] + ' — ' + RU_WD[d.getDay()];
+}
+function fmtPrice(p){ p = String(p || '').trim(); return !p ? '' : (/кг/i.test(p) ? p : p + ' руб/кг'); }
+
 /* ---- загрузка ---- */
 async function loadCurrent(){
   try {
     const status = await apiGet();
     document.getElementById('seasonActive').checked = !!status.seasonActive;
     document.getElementById('sessionOpen').checked = !!status.open;
-    document.getElementById('date').value = status.date || '';
-    document.getElementById('time').value = status.time || '';
-    document.getElementById('price').value = status.price || '';
+    document.getElementById('date').value = /^\d{4}-\d{2}-\d{2}$/.test(status.date || '') ? status.date : '';
+    document.getElementById('time').value = /^\d{2}:\d{2}$/.test(status.time || '') ? status.time : '';
+    document.getElementById('price').value = String(status.price || '').replace(/[^\d.,]/g, '');
     limitVal = Number(status.limit) || 10;
     limitEl.textContent = limitVal;
 
@@ -315,15 +324,16 @@ function renderRegs(data){
   const history = regs.filter(r => r.status === 'отменено' || r.status === 'не едет' ||
     ((r.status === 'приехал' || r.status === 'едет') && r.tripDate !== sd));
 
+  const sdText = fmtDate(sd);
   document.getElementById('regSummary').innerHTML = sd
-    ? `Заезд <b>${esc(sd)}</b> · едут <b>${data.confirmed}</b>/${data.limit}` +
+    ? `Заезд <b>${esc(sdText)}</b><br>едут <b>${data.confirmed}</b>/${data.limit}` +
       (data.pending ? ` · ждём ответа <b>${data.pending}</b>` : '') +
       (pool.length ? ` · пул <b>${pool.length}</b>` : '')
     : `Дата заезда не задана · в пуле <b>${pool.length}</b>`;
 
   let html = '';
 
-  html += `<div class="reg-sec"><div class="reg-sec-h">Едут${sd ? ' — ' + esc(sd) : ''} (${going.length})</div>`;
+  html += `<div class="reg-sec"><div class="reg-sec-h">Едут${sd ? ' — ' + esc(sdText) : ''} (${going.length})</div>`;
   html += going.length ? going.map(r => {
     const came = r.status === 'приехал';
     const badge = came ? ` <span class="reg-badge came">приехал</span>` : '';
@@ -410,12 +420,11 @@ document.getElementById('adminForm').addEventListener('submit', async (e) => {
 
   const payload = {
     action: 'adminUpdate',
-    password: document.getElementById('password').value,
     seasonActive: document.getElementById('seasonActive').checked,
     sessionOpen: document.getElementById('sessionOpen').checked,
-    date: document.getElementById('date').value.trim(),
-    time: document.getElementById('time').value.trim(),
-    price: document.getElementById('price').value.trim(),
+    date: document.getElementById('date').value,          // ISO yyyy-mm-dd
+    time: document.getElementById('time').value,          // HH:MM
+    price: String(document.getElementById('price').value || '').replace(/[^\d.,]/g, ''),
     limit: limitVal
   };
 

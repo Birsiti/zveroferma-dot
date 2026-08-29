@@ -1,5 +1,5 @@
-<!-- v2 · 29.08.2026 · бренд Звероферма.BY (зелёный/кремовый/золото, Playfair+Nunito),
-     единый бэкенд «Ферма», футер TG-Studio, фикс дублей эмодзи на экранах-состояниях -->
+<!-- v4 · 30.08.2026 · инфо-карточка заезда вертикальными строками (📅 🕙 💰), дата «5 сентября — суббота»,
+     цена «N руб/кг», текст крупнее/контрастнее; режим подтверждения приезда (?confirm=REG-…) -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -26,8 +26,8 @@
     --tg:#2AABEE;
     --tg-dark:#1F93CF;
     --ink:#F7F3EB;
-    --ink-soft:rgba(247,243,235,0.72);
-    --ink-faint:rgba(247,243,235,0.48);
+    --ink-soft:rgba(247,243,235,0.88);
+    --ink-faint:rgba(247,243,235,0.66);
     --error:#E8A36B;
     --safe-bottom:env(safe-area-inset-bottom,0px);
   }
@@ -65,19 +65,25 @@
     margin:0 0 12px;
     color:var(--cream);
   }
-  .sub{font-size:15px;line-height:1.55;color:var(--ink-soft);margin:0 auto;max-width:340px;}
+  .sub{font-size:15.5px;line-height:1.55;color:var(--ink-soft);margin:0 auto;max-width:340px;}
 
-  .info-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:16px;}
-  .info-pill{
-    background:rgba(255,255,255,0.08);
+  .info-card{
+    background:var(--card-bg);
     border:1px solid var(--card-border);
-    border-radius:999px;
-    padding:8px 15px;
-    font-size:13px;
-    font-weight:700;
-    color:var(--cream);
-    display:flex;align-items:center;gap:6px;
+    border-radius:18px;
+    padding:14px 18px;
+    margin:16px auto 0;
+    max-width:320px;
+    backdrop-filter:blur(6px);
   }
+  .info-line{
+    display:flex;align-items:center;gap:11px;
+    padding:8px 0;
+    font-size:15px;font-weight:600;color:var(--cream);
+    text-align:left;
+  }
+  .info-line + .info-line{border-top:1px solid var(--card-border);}
+  .info-line .ic{font-size:17px;line-height:1;flex:none;width:20px;text-align:center;}
 
   .counter-card{
     background:var(--card-bg);
@@ -90,7 +96,7 @@
   }
   .counter-jar{width:40px;height:40px;flex:none;}
   .counter-text{flex:1;}
-  .counter-title{font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;}
+  .counter-title{font-size:12px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;}
   .counter-value{font-family:'Playfair Display',Georgia,serif;font-size:19px;font-weight:700;color:var(--cream);}
   .counter-bar{height:6px;background:rgba(255,255,255,0.12);border-radius:4px;overflow:hidden;margin-top:9px;}
   .counter-bar-fill{height:100%;background:linear-gradient(90deg,var(--green-light),var(--gold));border-radius:4px;transition:width .5s ease;}
@@ -104,7 +110,7 @@
   }
 
   form{display:flex;flex-direction:column;gap:15px;}
-  label{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:7px;display:block;}
+  label{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:7px;display:block;}
   input, select{
     width:100%;
     padding:13px 14px;
@@ -161,8 +167,8 @@
   .submit-btn.ghost{background:rgba(255,255,255,0.09);color:var(--cream);border:1.5px solid var(--input-border);}
   .submit-btn.ghost:active{background:rgba(255,255,255,0.15);}
 
-  .who-line{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--cream);background:rgba(255,255,255,0.07);border-radius:12px;padding:11px 14px;}
-  .confirm-when{font-size:13px;color:var(--ink-soft);margin:8px 0 14px;}
+  .who-line{font-family:'JetBrains Mono',monospace;font-size:14.5px;color:var(--cream);background:rgba(255,255,255,0.07);border-radius:12px;padding:12px 14px;}
+  .confirm-when{font-size:14px;color:var(--ink-soft);margin:9px 0 14px;font-weight:600;}
 
   .hint{font-size:12px;color:var(--ink-faint);text-align:center;margin-top:2px;}
 
@@ -213,9 +219,10 @@
     <div class="eyebrow" id="heroEyebrow">Запись ограничена</div>
     <h1>Самосбор<br>голубики</h1>
     <p class="sub" id="heroSub">Загружаем актуальную информацию…</p>
-    <div class="info-row hidden" id="infoRow">
-      <div class="info-pill">📅 <span id="pillDate"></span> · <span id="pillTime"></span></div>
-      <div class="info-pill">💰 <span id="pillPrice"></span></div>
+    <div class="info-card hidden" id="infoRow">
+      <div class="info-line"><span class="ic">📅</span><span id="pillDate"></span></div>
+      <div class="info-line" id="lineTime"><span class="ic">🕙</span><span id="pillTime"></span></div>
+      <div class="info-line" id="linePrice"><span class="ic">💰</span><span id="pillPrice"></span></div>
     </div>
   </div>
 
@@ -374,6 +381,18 @@ async function apiPost(payload) {
   return res.json();
 }
 
+// дата: ISO → «5 сентября — суббота»
+const RU_MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const RU_WD = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
+function fmtDate(iso){
+  const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return String(iso || '');
+  const d = new Date(+m[1], +m[2] - 1, +m[3]);
+  return d.getDate() + ' ' + RU_MONTHS[d.getMonth()] + ' — ' + RU_WD[d.getDay()];
+}
+function fmtTime(t){ t = String(t || '').trim(); return t ? ('с ' + t) : ''; }
+function fmtPrice(p){ p = String(p || '').trim(); return !p ? '' : (/кг/i.test(p) ? p : p + ' руб/кг'); }
+
 // formMode: 'register' — идёт набор, есть места
 //           'waitlist'  — мест нет / заезда нет / сезон закончился
 let formMode = 'register';
@@ -410,9 +429,12 @@ function showOpenMode(status) {
   document.getElementById('heroEyebrow').textContent = 'Запись ограничена';
   document.getElementById('heroSub').textContent = 'В этом сезоне открыт самосбор на ограниченное число сборщиков.';
   document.getElementById('infoRow').classList.remove('hidden');
-  document.getElementById('pillDate').textContent = status.date || '';
-  document.getElementById('pillTime').textContent = status.time || '';
-  document.getElementById('pillPrice').textContent = status.price || '';
+  document.getElementById('pillDate').textContent = fmtDate(status.date) || 'дата уточняется';
+  const t = fmtTime(status.time), pr = fmtPrice(status.price);
+  document.getElementById('pillTime').textContent = t;
+  document.getElementById('pillPrice').textContent = pr;
+  document.getElementById('lineTime').classList.toggle('hidden', !t);
+  document.getElementById('linePrice').classList.toggle('hidden', !pr);
   document.getElementById('counterCard').classList.remove('hidden');
 
   const remaining = Math.max(status.remaining, 0);
@@ -508,8 +530,9 @@ async function startConfirm(id){
 
   const ph = String(data.phone || '').replace(/^\+?375\s*/, '').trim();
   document.getElementById('confirmWho').textContent = (data.name || 'Вы') + (ph ? '  ·  +375 ' + ph : '');
-  document.getElementById('confirmWhen').textContent = 'Заезд: ' + (data.tripDate || '—') +
-    (data.time ? ', ' + data.time : '') + (data.price ? '  ·  ' + data.price : '');
+  document.getElementById('confirmWhen').textContent = [
+    fmtDate(data.tripDate), fmtTime(data.time), fmtPrice(data.price)
+  ].filter(Boolean).join('  ·  ') || '—';
   document.getElementById('confirmHead').textContent = data.answered
     ? 'Вы уже отвечали — здесь можно поменять'
     : 'Подтвердите приезд на самосбор';
@@ -585,7 +608,9 @@ document.getElementById('regForm').addEventListener('submit', async (e) => {
           : 'Сообщим первыми, когда откроем следующий набор.';
         showStateCard('waitlistCard');
       } else {
-        document.getElementById('successText').textContent = 'Ждём Вас ' + document.getElementById('pillDate').textContent + ' (' + document.getElementById('pillTime').textContent + '). Если что-то изменится — позвоним.';
+        document.getElementById('successText').textContent = 'Ждём Вас ' + document.getElementById('pillDate').textContent +
+          (document.getElementById('pillTime').textContent ? ', ' + document.getElementById('pillTime').textContent : '') +
+          '. Если что-то изменится — позвоним.';
         document.getElementById('ticketId').textContent = '№ ' + (result.id || '—');
         showStateCard('successCard');
       }

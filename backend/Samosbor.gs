@@ -31,7 +31,7 @@
      POST { action:'confirmTrip', id, people, coming:true|false }   // из экрана подтверждения
      POST { action:'invite', id }          // админ: позвать одного из пула
      POST { action:'regUpdate', id, status }  // админ: приехал / отменено / без даты
-     POST { action:'adminUpdate', password, seasonActive, sessionOpen, date, time, price, limit }
+     POST { action:'adminUpdate', seasonActive, sessionOpen, date(ISO), time(HH:MM), price(число), limit }
    ============================================================ */
 
 var SB_REG  = 'РЕГИСТРАЦИИ';
@@ -180,9 +180,9 @@ function Samosbor_register_(body){
     'Статус':SB_ST.GOING, 'Дата_заезда':s.date, 'Приглашён':''
   });
   var ns = Samosbor_status_();
-  notifyAdmins_('🫐 Новая запись на самосбор\n' + name + ' · ' + phone + ' · ' +
-    plural_(people,'человек','человека','человек') + '\nЗаезд: ' + s.date +
-    '\nОсталось мест: ' + ns.remaining + ' из ' + ns.limit);
+  notifyAdmins_('🫐 Записался на самосбор\n' + name + ' · ' + phone + ' · ' +
+    plural_(people,'человек','человека','человек') + '\n' + fmtRuDate_(s.date) +
+    ' · свободно ' + ns.remaining + '/' + ns.limit);
   return json_({ success:true, id:id, remaining:ns.remaining, full:ns.full });
 }
 
@@ -206,8 +206,7 @@ function Samosbor_waitlist_(body){
     'Telegram_ID':trim_(body.telegramId), 'Человек':people,
     'Статус':SB_ST.POOL, 'Дата_заезда':'', 'Приглашён':''
   });
-  var reason = !s.seasonActive ? '(сезон завершён)' : !s.sessionOpen ? '(между заездами)' : '(мест нет)';
-  notifyAdmins_('📋 Новая заявка без даты ' + reason + '\n' + name + ' · ' + phone + ' · ' +
+  notifyAdmins_('📋 Заявка без даты\n' + name + ' · ' + phone + ' · ' +
     plural_(people,'человек','человека','человек'));
   return json_({ success:true, id:id });
 }
@@ -225,8 +224,8 @@ function Samosbor_cancel_(body){
       var tripDate = trim_(values[i][SB_REG_COLS.indexOf('Дата_заезда')]);
       sh.getRange(i + 1, sCol + 1).setValue(SB_ST.CANCELLED);
       var ns = Samosbor_status_();
-      notifyAdmins_('❌ Отмена записи на самосбор\n' + values[i][SB_REG_COLS.indexOf('Имя')] + ' · ' + values[i][pCol] +
-        '\nОсталось мест: ' + ns.remaining + ' из ' + ns.limit);
+      notifyAdmins_('❌ Отменил запись\n' + values[i][SB_REG_COLS.indexOf('Имя')] + ' · ' + values[i][pCol] +
+        '\nСвободно ' + ns.remaining + '/' + ns.limit);
       if (wasGoing) Samosbor_inviteNextFromPool_();   // место освободилось — зовём следующего
       return json_({ success:true, remaining:ns.remaining, full:ns.full });
     }
@@ -248,11 +247,11 @@ function Samosbor_confirmTrip_(body){
       if (body.coming){
         var people = clampInt_(body.people, 1, 10);
         Samosbor_setFields_(rowNum, { 'Статус':SB_ST.GOING, 'Человек':people, 'Дата_заезда':tripDate });
-        notifyAdmins_('✅ ' + name + ' подтвердил приезд\n' + tripDate + ' · ' + plural_(people,'человек','человека','человек'));
+        notifyAdmins_('✅ ' + name + ' приедет · ' + plural_(people,'человек','человека','человек') + '\n' + fmtRuDate_(tripDate));
         return json_({ success:true, coming:true, date:tripDate, time:s.time });
       } else {
         Samosbor_setFields_(rowNum, { 'Статус':SB_ST.DECLINED });
-        notifyAdmins_('🚫 ' + name + ' не приедет ' + tripDate);
+        notifyAdmins_('🚫 ' + name + ' не приедет · ' + fmtRuDate_(tripDate));
         return json_({ success:true, coming:false, date:tripDate });
       }
     }
@@ -292,13 +291,27 @@ var SB_CONFIRM_URL_DEFAULT = 'https://birsiti.github.io/zveroferma-dot/samosbor_
 function Samosbor_sendInvite_(tgId, id, name, s){
   var base = CFG.siteUrl || SB_CONFIRM_URL_DEFAULT;
   var url = base + (base.indexOf('?') >= 0 ? '&' : '?') + 'confirm=' + encodeURIComponent(id);
-  var text = '🫐 Открыли самосбор голубики' + (name ? ', ' + name : '') + '!\n' +
-    'Заезд: ' + s.date + (s.time ? ', ' + s.time : '') +
-    (s.price ? '\nЦена: ' + s.price : '') + '\n\nПриедете? Нажмите, чтобы ответить:';
+  var text = '🫐 Открыли самосбор голубики' + (name ? ', ' + name : '') + '!\n\n' +
+    '📅 ' + fmtRuDate_(s.date) + '\n' +
+    (s.time  ? '🕙 ' + fmtTime_(s.time) + '\n' : '') +
+    (s.price ? '💰 ' + fmtPrice_(s.price) + '\n' : '') +
+    '\nПриедете?';
   return tgSend_(tgId, text, {
     reply_markup: JSON.stringify({ inline_keyboard: [[ { text: 'Ответить →', web_app: { url: url } } ]] })
   });
 }
+
+/* ---- форматирование даты/времени/цены (общее для сообщений) ---- */
+var SB_MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+var SB_WEEKDAYS = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
+function fmtRuDate_(iso){
+  var m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return String(iso || '');
+  var d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return d.getDate() + ' ' + SB_MONTHS[d.getMonth()] + ' — ' + SB_WEEKDAYS[d.getDay()];
+}
+function fmtTime_(t){ t = String(t || '').trim(); return t ? ('с ' + t) : ''; }
+function fmtPrice_(p){ p = String(p || '').trim(); return !p ? '' : (/кг/i.test(p) ? p : p + ' руб/кг'); }
 
 /** После отмены «едущего» — позвать самого раннего из пула (если есть Telegram). */
 function Samosbor_inviteNextFromPool_(){
@@ -340,9 +353,7 @@ function Samosbor_regUpdate_(body){
 }
 
 function Samosbor_adminUpdate_(body){
-  if (CFG.adminPassword && trim_(body.password) !== CFG.adminPassword){
-    return json_({ success:false, message:'Неверный пароль' });
-  }
+  // доступ к админ-странице уже ограничен тегом в LEADTEX — пароль не проверяем
   Samosbor_setSetting_('SEASON_ACTIVE', body.seasonActive ? 'true' : 'false');
   Samosbor_setSetting_('SESSION_OPEN',  body.sessionOpen  ? 'true' : 'false');
   Samosbor_setSetting_('SESSION_DATE',  trim_(body.date));
@@ -401,5 +412,5 @@ function Samosbor_inviteAllPool(){
     Samosbor_sendInvite_(String(values[i][tCol]), String(values[i][0]), values[i][nCol], s);
     sent++;
   }
-  ui.alert('Позвали ' + sent + ' на «' + s.date + '».\n' + noTg + ' без Telegram — их видно в админке, можно позвонить.');
+  ui.alert('Позвали ' + sent + ' на ' + fmtRuDate_(s.date) + '.\n' + noTg + ' без Telegram — их видно в админке, можно позвонить.');
 }
