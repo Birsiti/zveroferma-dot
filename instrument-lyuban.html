@@ -104,7 +104,8 @@ svg{display:block; flex:none;}
 .search-wrap input:focus{ outline:none; border-color:var(--accent); }
 
 /* ===== Список ===== */
-.list{ padding:0 16px; display:flex; flex-direction:column; gap:10px; padding-bottom:14px; }
+.list{ padding:0 16px; display:flex; flex-direction:column; gap:10px;
+  padding-bottom: max(96px, calc(84px + var(--safe-bottom))); }
 
 .card{
   background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
@@ -161,14 +162,6 @@ svg{display:block; flex:none;}
 .skeleton-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:14px; }
 .sk{ border-radius:6px; background:var(--surface-3); background-image:var(--skeleton); background-size:200% 100%; animation:sk 1.3s ease-in-out infinite; }
 @keyframes sk{ 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
-
-/* ===== Футер студии ===== */
-.made-by{ display:flex; justify-content:center; margin:18px auto calc(88px + var(--safe-bottom)); }
-.made-by a{
-  display:flex; align-items:center; gap:7px; padding:8px 15px; border-radius:999px;
-  background:var(--accent); color:#fff; font-size:12.5px; font-weight:700; text-decoration:none;
-}
-.made-by-year{ font-family:'JetBrains Mono',monospace; font-weight:600; opacity:.8; }
 
 /* ===== Нижняя панель ===== */
 .submit-bar{
@@ -295,13 +288,6 @@ svg{display:block; flex:none;}
   </div>
 
   <div class="list" id="list"></div>
-
-  <div class="made-by">
-    <a href="https://t.me/tg_studio_BY_bot" target="_blank" rel="noopener">
-      <svg width="15" height="15" viewBox="0 0 240 240"><path fill="#fff" d="M100 157l-4 56c6 0 8-3 12-6l27-26 57 42c10 6 18 3 21-9l38-178c4-15-5-21-16-17L14 103c-15 6-15 14-3 18l46 14 106-67c5-3 10-1 6 2z"/></svg>
-      TG-Studio <span class="made-by-year" id="madeByYear">· 2026</span>
-    </a>
-  </div>
 
   <div class="submit-bar">
     <button class="btn-main" id="openAddBtn">+&nbsp; Записать выдачу</button>
@@ -443,7 +429,6 @@ function popSheet(){
 }
 
 function initTelegram() {
-  try { document.getElementById('madeByYear').textContent = '· ' + new Date().getFullYear(); } catch(e) {}
   if (!tg) return;
   tg.ready(); tg.expand();
   applyBrandChrome();

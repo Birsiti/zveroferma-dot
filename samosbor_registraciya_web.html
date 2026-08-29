@@ -158,6 +158,11 @@
   }
   .submit-btn:active{transform:scale(0.98);background:var(--tg-dark);}
   .submit-btn:disabled{background:rgba(247,243,235,0.22);color:rgba(247,243,235,0.6);cursor:not-allowed;}
+  .submit-btn.ghost{background:rgba(255,255,255,0.09);color:var(--cream);border:1.5px solid var(--input-border);}
+  .submit-btn.ghost:active{background:rgba(255,255,255,0.15);}
+
+  .who-line{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--cream);background:rgba(255,255,255,0.07);border-radius:12px;padding:11px 14px;}
+  .confirm-when{font-size:13px;color:var(--ink-soft);margin:8px 0 14px;}
 
   .hint{font-size:12px;color:var(--ink-faint);text-align:center;margin-top:2px;}
 
@@ -280,6 +285,32 @@
     <p id="waitlistCardText">Если кто-то отменит запись — сообщим Вам первым в Telegram.</p>
   </div>
 
+  <div class="card hidden" id="confirmCard">
+    <div class="notice-box" style="margin-bottom:16px;">
+      <div class="notice-icon">🫐</div>
+      <div class="notice-text" id="confirmHead">Подтвердите приезд на самосбор</div>
+    </div>
+    <div class="who-line" id="confirmWho">—</div>
+    <div class="confirm-when" id="confirmWhen"></div>
+    <div class="field">
+      <label>Сколько человек приедет</label>
+      <div class="stepper">
+        <button type="button" id="cMinus" aria-label="Меньше">−</button>
+        <div class="val" id="cPeopleVal">1</div>
+        <button type="button" id="cPlus" aria-label="Больше">+</button>
+      </div>
+    </div>
+    <div class="error-msg hidden" id="confirmErr"></div>
+    <button type="button" class="submit-btn" id="btnComing">Приеду · 1 чел.</button>
+    <button type="button" class="submit-btn ghost" id="btnDecline" style="margin-top:8px;">Не в этот раз</button>
+  </div>
+
+  <div class="state-card hidden" id="confirmDoneCard">
+    <div class="icon" id="confirmDoneIcon">🫐</div>
+    <h2 id="confirmDoneTitle">Записали!</h2>
+    <p id="confirmDoneText"></p>
+  </div>
+
   <div class="made-by">
     <a href="https://t.me/tg_studio_BY_bot" target="_blank" rel="noopener">
       <svg width="15" height="15" viewBox="0 0 240 240"><path fill="#fff" d="M100 157l-4 56c6 0 8-3 12-6l27-26 57 42c10 6 18 3 21-9l38-178c4-15-5-21-16-17L14 103c-15 6-15 14-3 18l46 14 106-67c5-3 10-1 6 2z"/></svg>
@@ -298,6 +329,15 @@ if (tg){
 }
 const telegramUser = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || null;
 try{ document.getElementById('madeByYear').textContent = '· ' + new Date().getFullYear(); }catch(e){}
+function haptic(style){
+  if (tg && tg.HapticFeedback){
+    if (['success','error','warning'].includes(style)) tg.HapticFeedback.notificationOccurred(style);
+    else tg.HapticFeedback.impactOccurred(style || 'light');
+  }
+}
+// режим подтверждения приезда: ссылка ...?confirm=REG-... либо startapp
+const CONFIRM_ID = ((new URLSearchParams(location.search).get('confirm')) ||
+  (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || '').trim();
 
 const CONFIG = {
   // Единый бэкенд «Ферма» (area=samosbor). Старый: .../AKfycbwX1NMQRLnIZwut5M3XBH7h9W-59OiyDzbgT3G9ma_uHug7yZa1IkTVajcaPLTRjUYj/exec
@@ -321,8 +361,8 @@ function formatPhone(raw) {
 }
 phoneInput.addEventListener('input', (e) => { e.target.value = formatPhone(e.target.value); });
 
-async function apiGet() {
-  const res = await fetch(CONFIG.apiUrl);
+async function apiGet(qs) {
+  const res = await fetch(CONFIG.apiUrl + (qs || ''));
   return res.json();
 }
 async function apiPost(payload) {
@@ -432,7 +472,81 @@ async function loadStatus() {
     document.getElementById('submitBtn').textContent = 'Ошибка загрузки';
   }
 }
-loadStatus();
+
+/* ===== Режим подтверждения приезда (открывается кнопкой из сообщения-приглашения) ===== */
+function confirmDone(icon, title, text){
+  document.getElementById('confirmCard').classList.add('hidden');
+  const d = document.getElementById('confirmDoneCard');
+  d.classList.remove('hidden');
+  document.getElementById('confirmDoneIcon').textContent = icon;
+  document.getElementById('confirmDoneTitle').textContent = title;
+  document.getElementById('confirmDoneText').textContent = text;
+}
+
+async function startConfirm(id){
+  document.getElementById('hero').classList.add('hidden');
+  document.getElementById('counterCard').classList.add('hidden');
+  document.getElementById('formCard').classList.add('hidden');
+  const card = document.getElementById('confirmCard');
+  card.classList.remove('hidden');
+
+  let data;
+  try { data = await apiGet('?area=samosbor&action=reg&id=' + encodeURIComponent(id)); }
+  catch(e){ data = { ok:false }; }
+  if (!data || !data.ok){
+    confirmDone('🤔', 'Не нашли заявку', 'Откройте ссылку из сообщения ещё раз или напишите нам.');
+    return;
+  }
+
+  let cp = Math.max(1, Math.min(10, data.people || 1));
+  const cpEl = document.getElementById('cPeopleVal');
+  const btnComing = document.getElementById('btnComing');
+  function renderCp(){ cpEl.textContent = cp; btnComing.textContent = 'Приеду · ' + cp + ' чел.'; }
+  renderCp();
+  document.getElementById('cMinus').onclick = () => { if (cp > 1){ cp--; renderCp(); haptic(); } };
+  document.getElementById('cPlus').onclick  = () => { if (cp < 10){ cp++; renderCp(); haptic(); } };
+
+  const ph = String(data.phone || '').replace(/^\+?375\s*/, '').trim();
+  document.getElementById('confirmWho').textContent = (data.name || 'Вы') + (ph ? '  ·  +375 ' + ph : '');
+  document.getElementById('confirmWhen').textContent = 'Заезд: ' + (data.tripDate || '—') +
+    (data.time ? ', ' + data.time : '') + (data.price ? '  ·  ' + data.price : '');
+  document.getElementById('confirmHead').textContent = data.answered
+    ? 'Вы уже отвечали — здесь можно поменять'
+    : 'Подтвердите приезд на самосбор';
+
+  btnComing.onclick = () => sendConfirm(id, true, cp);
+  document.getElementById('btnDecline').onclick = () => sendConfirm(id, false, cp);
+}
+
+async function sendConfirm(id, coming, people){
+  const err = document.getElementById('confirmErr');
+  err.classList.add('hidden');
+  const b1 = document.getElementById('btnComing'), b2 = document.getElementById('btnDecline');
+  b1.disabled = b2.disabled = true;
+  try {
+    const res = await apiPost({ action:'confirmTrip', id, people, coming });
+    if (res.success){
+      haptic('success');
+      if (coming){
+        confirmDone('🫐', 'Записали!', 'Ждём вас ' + (res.date || '') + (res.time ? ', ' + res.time : '') +
+          '. Если планы изменятся — напишите нам.');
+      } else {
+        confirmDone('👋', 'Хорошо, спросим в следующий раз', 'Вы остаётесь в списке — позовём на следующий заезд.');
+      }
+    } else {
+      err.textContent = res.message || 'Не получилось. Попробуйте ещё раз.';
+      err.classList.remove('hidden');
+      b1.disabled = b2.disabled = false;
+    }
+  } catch(e){
+    err.textContent = 'Ошибка соединения — попробуйте ещё раз.';
+    err.classList.remove('hidden');
+    b1.disabled = b2.disabled = false;
+  }
+}
+
+if (CONFIRM_ID) startConfirm(CONFIRM_ID);
+else loadStatus();
 
 let lastAttemptedPhone = '';
 

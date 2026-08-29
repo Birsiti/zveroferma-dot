@@ -59,18 +59,28 @@
 - `POST {action:'confirm', id, confirmedAt, confirmedBy, confirm, reqId}` → `{ ok, record }`
 
 ### area=samosbor  (bare GET, `?area=samosbor`, либо action из списка)
-- `GET` (без параметров) → `{ seasonActive, open, date, time, price, count, limit, remaining, full }`
-- `GET  ?area=samosbor&action=regs` → `{ ok, limit, taken, count, remaining, regs:[…], waitlist:[…] }`
-- `POST {action:'register', name, phone, telegramId, people}` → `{ success, id } | {full:true} | {duplicate:true} | {success:false, message}`
-- `POST {action:'waitlist', name, phone, telegramId, people}` → `{ success:true }`
-- `POST {action:'cancel', phone}` → `{ success:true } | {success:false, message}`
-- `POST {action:'regUpdate', id, status}` → `{ ok:true }` (отменить / «пришёл»)
-- `POST {action:'adminUpdate', password, seasonActive, sessionOpen, date, time, price, limit}` → `{ success:true } | {success:false, message}`
 
-Ёмкость самосбора считается **по числу активных заявок** (как в старом бэкенде):
-одна семья = одна заявка = одно место. Отменённые (`Статус` = «отменено»)
-не считаются. `action=cancel` не удаляет строку, а ставит `Статус` = «отменено»
-и автоматически зовёт первого из листа ожидания.
+Модель: **пул → приглашение → подтверждение.** `РЕГИСТРАЦИИ` получают колонки
+`Дата_заезда`, `Приглашён`. Статусы: `едет | без даты | приглашён | не едет | приехал | отменено`.
+
+- `GET` (без параметров) → `{ seasonActive, open, date, time, price, count, limit, remaining, full }`
+  — `count` = число подтверждённых («едет»/«приехал») на текущую дату заезда.
+- `GET  ?action=reg&id=REG-…` → `{ ok, id, name, phone, people, status, tripDate, time, price, answered }`
+  — данные для экрана подтверждения.
+- `GET  ?action=regs` → `{ ok, sessionDate, sessionTime, limit, confirmed, pending, pool, regs:[…] }`
+  — `regs` плоский список (`id, ts, name, phone, telegramId, people, status, tripDate, invitedAt`),
+  админка сама раскладывает по секциям.
+- `POST {action:'register', name, phone, telegramId, people}` → запись на открытый заезд, `Статус`=«едет».
+- `POST {action:'waitlist', name, phone, telegramId, people}` → в пул, `Статус`=«без даты».
+- `POST {action:'cancel', phone}` → `Статус`=«отменено» (+ авто-приглашение первого из пула, если было «едет»).
+- `POST {action:'confirmTrip', id, people, coming:true|false}` → из мини-аппа: `Статус`=«едет»/«не едет».
+- `POST {action:'invite', id}` → админ: `Статус`=«приглашён» + бот шлёт сообщение с web_app-кнопкой.
+- `POST {action:'regUpdate', id, status}` → админ: «приехал» / «без даты» (вернуть в пул).
+- `POST {action:'adminUpdate', …}` → без изменений.
+
+Кнопка в сообщении-приглашении открывает форму записи в режиме подтверждения
+(`?confirm=REG-…`). URL берётся из `SAMOSBOR_SITE_URL`, при пустом — из дефолта в коде.
+Меню «Ферма» → «Самосбор: позвать весь пул на заезд».
 
 ## Настройки (Script Properties)
 

@@ -93,7 +93,7 @@ function onOpen(){
     .addItem('Инструмент: напоминания сейчас', 'Tool_runRemindersNow')
     .addItem('Инструмент: переустановить триггер', 'reinstallToolTrigger')
     .addSeparator()
-    .addItem('Самосбор: позвать весь лист ожидания', 'Samosbor_notifyAllWaitlist')
+    .addItem('Самосбор: позвать весь пул на заезд', 'Samosbor_inviteAllPool')
     .addSeparator()
     .addItem('Создать/дополнить листы', 'setup')
     .addItem('Импорт инструмента из старой таблицы', 'importToolData')

@@ -122,17 +122,16 @@
   .reg-badge.cancelled{background:rgba(232,163,107,0.16);color:var(--danger);}
   .reg-actions{display:flex;gap:7px;margin-top:8px;}
   .reg-btn{
-    flex:1;min-height:34px;border:1px solid var(--input-border);background:var(--input-bg);
+    flex:1;min-height:34px;padding:0 10px;border:1px solid var(--input-border);background:var(--input-bg);
     color:var(--cream);border-radius:9px;font-size:12px;font-weight:700;font-family:'Nunito',sans-serif;
   }
   .reg-btn:active{background:rgba(255,255,255,0.12);}
-  .reg-empty{color:var(--ink-faint);font-size:13px;text-align:center;padding:18px 0;}
-  .wait-title{font-size:11px;font-weight:700;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;margin:16px 0 6px;}
-
-  .made-by{display:flex;justify-content:center;margin:22px auto 4px;}
-  .made-by a{display:flex;align-items:center;gap:7px;padding:8px 15px;border-radius:999px;background:var(--tg);color:#fff;font-size:12.5px;font-weight:700;text-decoration:none;}
-  .made-by svg{display:block;flex:none;}
-  .made-by-year{font-family:'JetBrains Mono',monospace;font-weight:600;opacity:.8;}
+  .reg-btn.inline{flex:none;min-height:26px;font-size:11px;}
+  .reg-empty{color:var(--ink-faint);font-size:13px;text-align:center;padding:14px 0;}
+  .reg-sec{margin-top:18px;}
+  .reg-sec-h{font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.05em;
+    margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .reg-toggle{cursor:pointer;}
 
   .hidden{display:none !important;}
 </style>
@@ -200,18 +199,12 @@
     <div class="status-msg" id="statusMsg"></div>
   </form>
 
-  <div class="card hidden" id="regsCard">
-    <h2>Записавшиеся</h2>
+  <div class="card hidden" id="regsCard" style="margin-top:22px;">
+    <h2>Кто едет</h2>
     <div class="reg-summary" id="regSummary"></div>
     <div id="regList"></div>
     <div id="waitBlock"></div>
-  </div>
-
-  <div class="made-by">
-    <a href="https://t.me/tg_studio_BY_bot" target="_blank" rel="noopener">
-      <svg width="15" height="15" viewBox="0 0 240 240"><path fill="#fff" d="M100 157l-4 56c6 0 8-3 12-6l27-26 57 42c10 6 18 3 21-9l38-178c4-15-5-21-16-17L14 103c-15 6-15 14-3 18l46 14 106-67c5-3 10-1 6 2z"/></svg>
-      TG-Studio <span class="made-by-year" id="madeByYear">· 2026</span>
-    </a>
+    <div class="status-msg" id="regMsg"></div>
   </div>
 </div>
 
@@ -236,7 +229,6 @@ function confirmAsync(message){
     resolve(window.confirm(message));
   });
 }
-try{ document.getElementById('madeByYear').textContent = '· ' + new Date().getFullYear(); }catch(e){}
 
 const CONFIG = {
   // Единый бэкенд «Ферма» (area=samosbor). Старый: .../AKfycbwX1NMQRLnIZwut5M3XBH7h9W-59OiyDzbgT3G9ma_uHug7yZa1IkTVajcaPLTRjUYj/exec
@@ -298,55 +290,111 @@ async function loadRegs(){
   } catch(e){ /* тихо — список необязателен */ }
 }
 
-function renderRegs(data){
-  document.getElementById('regSummary').innerHTML =
-    `Заявок <b>${data.taken}</b> из ${data.limit} · свободно <b>${data.remaining}</b>`;
+function regToast(text, ok){
+  const m = document.getElementById('regMsg');
+  m.textContent = text;
+  m.className = 'status-msg ' + (ok === false ? 'err' : 'ok');
+  setTimeout(() => { m.className = 'status-msg'; }, 3200);
+}
 
-  const list = document.getElementById('regList');
-  const regs = (data.regs || []).slice().reverse();
-  if (!regs.length){
-    list.innerHTML = `<div class="reg-empty">Пока никто не записался</div>`;
-  } else {
-    list.innerHTML = regs.map(r => {
-      const cancelled = r.status === 'отменено' || r.status === 'cancelled';
-      const came = r.status === 'пришёл' || r.status === 'came';
-      let badge = '';
-      if (cancelled) badge = `<span class="reg-badge cancelled">отменено</span>`;
-      else if (came) badge = `<span class="reg-badge came">пришёл</span>`;
-      const actions = cancelled ? '' : `
-        <div class="reg-actions">
-          ${came ? '' : `<button class="reg-btn" data-id="${esc(r.id)}" data-st="пришёл">Отметить «пришёл»</button>`}
-          <button class="reg-btn" data-id="${esc(r.id)}" data-st="отменено">Отменить</button>
-        </div>`;
-      return `
-        <div class="reg-item">
-          <div class="reg-main">
-            <div class="reg-name ${cancelled ? 'off' : ''}">${esc(r.name)} · ${r.people} чел.</div>
-            <div class="reg-meta">${esc(r.phone)}${r.ts ? ' · ' + esc(String(r.ts).split(' ')[0]) : ''}</div>
-            ${actions}
-          </div>
-          ${badge}
-        </div>`;
-    }).join('');
+function personRow(r, actionsHtml, off){
+  const noTg = !r.telegramId;
+  return `<div class="reg-item"><div class="reg-main">
+    <div class="reg-name ${off ? 'off' : ''}">${esc(r.name || '—')} · ${r.people} чел.</div>
+    <div class="reg-meta">${esc(r.phone || '')}${noTg ? ' · нет Telegram' : ''}${r.invitedAt ? ' · позвали ' + esc(r.invitedAt) : ''}</div>
+    ${actionsHtml || ''}
+  </div></div>`;
+}
+
+function renderRegs(data){
+  const sd = data.sessionDate || '';
+  const regs = data.regs || [];
+  const going   = regs.filter(r => (r.status === 'едет' || r.status === 'приехал') && r.tripDate === sd && sd);
+  const waiting = regs.filter(r => r.status === 'приглашён' && r.tripDate === sd);
+  const pool    = regs.filter(r => r.status === 'без даты');
+  const history = regs.filter(r => r.status === 'отменено' || r.status === 'не едет' ||
+    ((r.status === 'приехал' || r.status === 'едет') && r.tripDate !== sd));
+
+  document.getElementById('regSummary').innerHTML = sd
+    ? `Заезд <b>${esc(sd)}</b> · едут <b>${data.confirmed}</b>/${data.limit}` +
+      (data.pending ? ` · ждём ответа <b>${data.pending}</b>` : '') +
+      (pool.length ? ` · пул <b>${pool.length}</b>` : '')
+    : `Дата заезда не задана · в пуле <b>${pool.length}</b>`;
+
+  let html = '';
+
+  html += `<div class="reg-sec"><div class="reg-sec-h">Едут${sd ? ' — ' + esc(sd) : ''} (${going.length})</div>`;
+  html += going.length ? going.map(r => {
+    const came = r.status === 'приехал';
+    const badge = came ? ` <span class="reg-badge came">приехал</span>` : '';
+    const act = `<div class="reg-actions">
+      ${came ? '' : `<button class="reg-btn" data-act="came" data-id="${esc(r.id)}">Приехал</button>`}
+      <button class="reg-btn" data-act="pool" data-id="${esc(r.id)}">Убрать</button></div>`;
+    return `<div class="reg-item"><div class="reg-main">
+      <div class="reg-name">${esc(r.name)} · ${r.people} чел.${badge}</div>
+      <div class="reg-meta">${esc(r.phone)}${!r.telegramId ? ' · нет Telegram' : ''}</div>${act}
+    </div></div>`;
+  }).join('') : `<div class="reg-empty">Пока никто не подтвердил</div>`;
+  html += `</div>`;
+
+  if (waiting.length){
+    html += `<div class="reg-sec"><div class="reg-sec-h">Ждём ответа (${waiting.length})</div>`;
+    html += waiting.map(r => personRow(r,
+      `<div class="reg-actions"><button class="reg-btn" data-act="invite" data-id="${esc(r.id)}">Напомнить</button></div>`)).join('');
+    html += `</div>`;
   }
 
-  const wait = data.waitlist || [];
-  document.getElementById('waitBlock').innerHTML = wait.length
-    ? `<div class="wait-title">Лист ожидания (${wait.length})</div>` + wait.map(w =>
-        `<div class="reg-item"><div class="reg-main"><div class="reg-name">${esc(w.name)} · ${w.people} чел.</div><div class="reg-meta">${esc(w.phone)}</div></div></div>`
-      ).join('')
-    : '';
+  html += `<div class="reg-sec"><div class="reg-sec-h">Не позвали · пул (${pool.length})`;
+  if (sd && pool.some(r => r.telegramId)) html += ` <button class="reg-btn inline" id="inviteAllBtn">Позвать всех →</button>`;
+  html += `</div>`;
+  html += pool.length ? pool.map(r => personRow(r, r.telegramId
+    ? `<div class="reg-actions"><button class="reg-btn" data-act="invite" data-id="${esc(r.id)}">Позвать →</button></div>`
+    : `<div class="reg-meta" style="margin-top:6px;">позвонить</div>`)).join('') : `<div class="reg-empty">Пул пуст</div>`;
+  html += `</div>`;
 
-  list.querySelectorAll('.reg-btn').forEach(btn => {
+  if (history.length){
+    html += `<div class="reg-sec"><div class="reg-sec-h reg-toggle" id="histToggle">История (${history.length}) ▾</div><div id="histBody" class="hidden">`;
+    html += history.map(r => {
+      const label = r.status === 'отменено' ? 'отменил' : r.status === 'не едет' ? 'не приедет' : 'приехал ' + esc(r.tripDate || '');
+      return `<div class="reg-item"><div class="reg-main">
+        <div class="reg-name off">${esc(r.name)} · ${r.people} чел.</div>
+        <div class="reg-meta">${esc(r.phone)} · ${label}</div></div></div>`;
+    }).join('');
+    html += `</div></div>`;
+  }
+
+  const list = document.getElementById('regList');
+  list.innerHTML = html;
+  document.getElementById('waitBlock').innerHTML = '';
+
+  const ht = document.getElementById('histToggle');
+  if (ht) ht.addEventListener('click', () => document.getElementById('histBody').classList.toggle('hidden'));
+
+  const iab = document.getElementById('inviteAllBtn');
+  if (iab) iab.addEventListener('click', async () => {
+    if (!(await confirmAsync('Позвать всех из пула на «' + sd + '»?'))) return;
+    iab.disabled = true;
+    const ids = pool.filter(r => r.telegramId).map(r => r.id);
+    let ok = 0;
+    for (const id of ids){ try { const res = await apiPost({ action: 'invite', id }); if (res.ok) ok++; } catch(e){} }
+    haptic('success'); regToast(`Позвали ${ok} из ${ids.length}`); loadRegs();
+  });
+
+  list.querySelectorAll('.reg-btn[data-act]').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const st = btn.dataset.st;
-      if (st === 'отменено' && !(await confirmAsync('Отменить запись этого человека?'))) return;
+      const act = btn.dataset.act, id = btn.dataset.id;
+      if (act === 'pool' && !(await confirmAsync('Убрать из едущих (вернуть в пул)?'))) return;
       btn.disabled = true;
       try {
-        const res = await apiPost({ action: 'regUpdate', id: btn.dataset.id, status: st });
-        if (res.ok){ haptic('success'); loadRegs(); }
-        else { haptic('error'); btn.disabled = false; }
-      } catch(e){ haptic('error'); btn.disabled = false; }
+        const res = (act === 'invite')
+          ? await apiPost({ action: 'invite', id })
+          : await apiPost({ action: 'regUpdate', id, status: act === 'came' ? 'приехал' : 'без даты' });
+        if (res.ok){
+          haptic('success');
+          if (act === 'invite') regToast(res.sent ? 'Приглашение отправлено' : (res.message || 'Нет Telegram — позвони'), res.sent);
+          loadRegs();
+        } else { haptic('error'); btn.disabled = false; regToast(res.message || 'Ошибка', false); }
+      } catch(e){ haptic('error'); btn.disabled = false; regToast('Ошибка соединения', false); }
     });
   });
 }
