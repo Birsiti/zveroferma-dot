@@ -392,7 +392,10 @@ function fmtDate(v){
   else { d = new Date(v); if (isNaN(d)) return String(v); }
   return d.getDate() + ' ' + RU_MONTHS[d.getMonth()] + ' — ' + RU_WD[d.getDay()];
 }
-function fmtTime(t){ t = String(t || '').trim(); return t ? ('с ' + t) : ''; }
+function fmtTime(t){
+  const m = String(t || '').trim().match(/^(\d{1,2}):(\d{2})/);
+  return m ? ('с ' + ('0' + m[1]).slice(-2) + ':' + m[2]) : '';
+}
 function fmtPrice(p){ p = String(p || '').trim(); return !p ? '' : (/кг/i.test(p) ? p : p + ' руб/кг'); }
 
 // formMode: 'register' — идёт набор, есть места
