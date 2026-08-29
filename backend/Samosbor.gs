@@ -60,9 +60,9 @@ function Samosbor_settings_(){
   return {
     seasonActive: String(m.SEASON_ACTIVE).toLowerCase() === 'true',
     sessionOpen:  String(m.SESSION_OPEN).toLowerCase() === 'true',
-    date:  trim_(m.SESSION_DATE),
-    time:  trim_(m.SESSION_TIME),
-    price: trim_(m.SESSION_PRICE),
+    date:  toIsoDate_(trim_(m.SESSION_DATE)),   // нормализуем к ISO даже если в листе старый формат
+    time:  normTime_(trim_(m.SESSION_TIME)),
+    price: String(trim_(m.SESSION_PRICE)).replace(/[^\d.,]/g, ''),
     limit: Number(m.LIMIT) || 10
   };
 }
@@ -304,14 +304,31 @@ function Samosbor_sendInvite_(tgId, id, name, s){
 /* ---- форматирование даты/времени/цены (общее для сообщений) ---- */
 var SB_MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 var SB_WEEKDAYS = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
-function fmtRuDate_(iso){
-  var m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!m) return String(iso || '');
-  var d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+function fmtRuDate_(v){
+  if (!v) return '';
+  var d, m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  else { d = new Date(v); if (isNaN(d.getTime())) return String(v); }
   return d.getDate() + ' ' + SB_MONTHS[d.getMonth()] + ' — ' + SB_WEEKDAYS[d.getDay()];
 }
-function fmtTime_(t){ t = String(t || '').trim(); return t ? ('с ' + t) : ''; }
-function fmtPrice_(p){ p = String(p || '').trim(); return !p ? '' : (/кг/i.test(p) ? p : p + ' руб/кг'); }
+/** ISO-строка даты из любого входа (для нормализации SESSION_DATE). */
+function toIsoDate_(v){
+  if (!v) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(v))) return String(v);
+  var d = new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  return Utilities.formatDate(d, CFG.tz, 'yyyy-MM-dd');
+}
+function fmtTime_(t){ t = normTime_(t); return t ? ('с ' + t) : ''; }
+function fmtPrice_(p){ p = String(p || '').replace(/[^\d.,]/g, '').trim(); return !p ? '' : (p + ' руб/кг'); }
+/** «С 10» / «10:00» / «10» → «10:00». */
+function normTime_(t){
+  t = String(t || '').trim();
+  var m = t.match(/(\d{1,2})[:.\s]?(\d{2})?/);
+  if (!m) return '';
+  var hh = ('0' + m[1]).slice(-2), mm = m[2] || '00';
+  return hh + ':' + mm;
+}
 
 /** После отмены «едущего» — позвать самого раннего из пула (если есть Telegram). */
 function Samosbor_inviteNextFromPool_(){
@@ -356,9 +373,9 @@ function Samosbor_adminUpdate_(body){
   // доступ к админ-странице уже ограничен тегом в LEADTEX — пароль не проверяем
   Samosbor_setSetting_('SEASON_ACTIVE', body.seasonActive ? 'true' : 'false');
   Samosbor_setSetting_('SESSION_OPEN',  body.sessionOpen  ? 'true' : 'false');
-  Samosbor_setSetting_('SESSION_DATE',  trim_(body.date));
-  Samosbor_setSetting_('SESSION_TIME',  trim_(body.time));
-  Samosbor_setSetting_('SESSION_PRICE', trim_(body.price));
+  Samosbor_setSetting_('SESSION_DATE',  toIsoDate_(trim_(body.date)));
+  Samosbor_setSetting_('SESSION_TIME',  normTime_(body.time));
+  Samosbor_setSetting_('SESSION_PRICE', String(body.price || '').replace(/[^\d.,]/g, ''));
   Samosbor_setSetting_('LIMIT',         Math.max(1, Math.floor(Number(body.limit)) || 10));
   return json_({ success:true });
 }

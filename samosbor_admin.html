@@ -109,8 +109,10 @@
   .loading{text-align:center;color:var(--ink-soft);font-size:13px;padding:40px 0;}
 
   /* Записавшиеся */
-  .reg-summary{font-family:'JetBrains Mono',monospace;font-size:14.5px;color:var(--cream);margin-bottom:14px;line-height:1.5;}
-  .reg-summary b{color:var(--gold);}
+  .reg-summary{margin-bottom:16px;}
+  .reg-when{font-size:16px;font-weight:700;color:var(--cream);}
+  .reg-nums{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink-soft);margin-top:4px;line-height:1.5;}
+  .reg-nums b{color:var(--gold);}
   .reg-item{
     display:flex;align-items:flex-start;gap:10px;
     padding:13px 0;border-bottom:1px solid var(--card-border);
@@ -261,13 +263,24 @@ document.getElementById('limitStepper').addEventListener('click', (e)=>{
 /* ---- дата: ISO → «5 сентября — суббота» ---- */
 const RU_MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 const RU_WD = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
-function fmtDate(iso){
-  const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!m) return String(iso || '');
-  const d = new Date(+m[1], +m[2] - 1, +m[3]);
+function fmtDate(v){
+  if (!v) return '';
+  let d;
+  const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) d = new Date(+m[1], +m[2] - 1, +m[3]);
+  else { d = new Date(v); if (isNaN(d)) return String(v); }
   return d.getDate() + ' ' + RU_MONTHS[d.getMonth()] + ' — ' + RU_WD[d.getDay()];
 }
 function fmtPrice(p){ p = String(p || '').trim(); return !p ? '' : (/кг/i.test(p) ? p : p + ' руб/кг'); }
+function toIsoInput(v){
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v || '')) return v;
+  const d = new Date(v); if (isNaN(d)) return '';
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function toHHMM(v){
+  const m = String(v || '').match(/(\d{1,2})[:.\s]?(\d{2})?/);
+  return m ? (('0' + m[1]).slice(-2) + ':' + (m[2] || '00')) : '';
+}
 
 /* ---- загрузка ---- */
 async function loadCurrent(){
@@ -275,8 +288,8 @@ async function loadCurrent(){
     const status = await apiGet();
     document.getElementById('seasonActive').checked = !!status.seasonActive;
     document.getElementById('sessionOpen').checked = !!status.open;
-    document.getElementById('date').value = /^\d{4}-\d{2}-\d{2}$/.test(status.date || '') ? status.date : '';
-    document.getElementById('time').value = /^\d{2}:\d{2}$/.test(status.time || '') ? status.time : '';
+    document.getElementById('date').value = toIsoInput(status.date);
+    document.getElementById('time').value = toHHMM(status.time);
     document.getElementById('price').value = String(status.price || '').replace(/[^\d.,]/g, '');
     limitVal = Number(status.limit) || 10;
     limitEl.textContent = limitVal;
@@ -326,14 +339,15 @@ function renderRegs(data){
 
   const sdText = fmtDate(sd);
   document.getElementById('regSummary').innerHTML = sd
-    ? `Заезд <b>${esc(sdText)}</b><br>едут <b>${data.confirmed}</b>/${data.limit}` +
-      (data.pending ? ` · ждём ответа <b>${data.pending}</b>` : '') +
-      (pool.length ? ` · пул <b>${pool.length}</b>` : '')
-    : `Дата заезда не задана · в пуле <b>${pool.length}</b>`;
+    ? `<div class="reg-when">${esc(sdText)}</div>
+       <div class="reg-nums">Едут <b>${data.confirmed}</b> из ${data.limit}` +
+       (data.pending ? ` · ждём ответа <b>${data.pending}</b>` : '') +
+       ` · в пуле <b>${pool.length}</b></div>`
+    : `<div class="reg-when">Дата заезда не задана</div><div class="reg-nums">В пуле <b>${pool.length}</b></div>`;
 
   let html = '';
 
-  html += `<div class="reg-sec"><div class="reg-sec-h">Едут${sd ? ' — ' + esc(sdText) : ''} (${going.length})</div>`;
+  html += `<div class="reg-sec"><div class="reg-sec-h">Едут (${going.length})</div>`;
   html += going.length ? going.map(r => {
     const came = r.status === 'приехал';
     const badge = came ? ` <span class="reg-badge came">приехал</span>` : '';
