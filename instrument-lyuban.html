@@ -1,4 +1,7 @@
-<!-- v4 · 29.08.2026 · переименование "Подтвердить" в "Ещё нужен" — точнее отражает суть действия (напомнили о возврате, человек попросил продлить) -->
+<!-- v5 · 29.08.2026 · редизайн: степперы количества (− / +), прогресс частичного возврата,
+     относительные даты, скелет-загрузка, мягкое обновление без спиннера,
+     единый обработчик BackButton, защита от null в сортировке/поиске,
+     ручная правка даты напоминания больше не затирается -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -17,6 +20,7 @@
 </script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap');
 
@@ -33,6 +37,7 @@
   --danger:#E5626A; --danger-soft:rgba(229,98,106,.14);
   --line:#2A2F35; --line-strong:#3A414A;
   --shadow: 0 1px 0 rgba(255,255,255,.02) inset, 0 8px 20px -12px rgba(0,0,0,.5);
+  --skeleton: linear-gradient(90deg, #1E2328 0%, #262C33 50%, #1E2328 100%);
 }
 :root[data-theme="light"]{
   --bg:#F4F6F8; --surface:#FFFFFF; --surface-2:#EEF1F4; --surface-3:#E4E8EC;
@@ -42,48 +47,77 @@
   --danger:#D6505A; --danger-soft:rgba(214,80,90,.10);
   --line:#E2E6EA; --line-strong:#CDD3D9;
   --shadow: 0 1px 0 #fff inset, 0 8px 20px -14px rgba(20,25,30,.18);
+  --skeleton: linear-gradient(90deg, #E9EDF1 0%, #F3F6F8 50%, #E9EDF1 100%);
 }
 
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-html,body{margin:0; padding:0; background:var(--bg); color:var(--ink); font-family:'Inter',sans-serif;}
+html,body{margin:0; padding:0; background:var(--bg); color:var(--ink);
+  font-family:'Inter',sans-serif; touch-action:manipulation;}
 body{padding-top:var(--safe-top);}
+svg{display:block; flex:none;}
 
-.topbar{ display:flex; align-items:center; gap:10px; padding:14px 16px 4px; }
-.back{ width:34px; height:34px; border-radius:50%; background:var(--surface-2); border:1px solid var(--line); color:var(--ink-soft); display:flex; align-items:center; justify-content:center; text-decoration:none; font-size:16px; flex:none; }
-.topbar h1{ font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:19px; margin:0; display:flex; align-items:center; gap:7px; }
-.topbar p{ margin:2px 0 0; font-size:13px; color:var(--ink-soft); }
+/* ===== Шапка ===== */
+.topbar{ display:flex; align-items:center; gap:12px; padding:14px 16px 6px; }
+.topbar .glyph{
+  width:38px; height:38px; border-radius:11px; flex:none;
+  background:var(--accent-soft); color:var(--accent);
+  display:flex; align-items:center; justify-content:center;
+}
+.topbar .tt{ flex:1; min-width:0; }
+.topbar h1{ font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:18px; margin:0; }
+.topbar p{ margin:2px 0 0; font-size:12.5px; color:var(--ink-soft); }
+.icon-btn{
+  width:38px; height:38px; border-radius:50%; flex:none;
+  background:var(--surface-2); border:1px solid var(--line); color:var(--ink-soft);
+  display:flex; align-items:center; justify-content:center;
+}
+.icon-btn:active{ background:var(--surface-3); }
+.icon-btn.spin svg{ animation:spin .7s linear infinite; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
 
 .demo-banner{
-  margin:0 16px 12px; padding:8px 12px; border-radius:var(--radius-sm);
+  margin:6px 16px 12px; padding:8px 12px; border-radius:var(--radius-sm);
   background:var(--accent-soft); color:var(--accent-dark); font-size:12px; font-weight:600;
 }
 
-.summary{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; padding:12px 16px 12px; }
-.sum-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-sm); padding:10px 6px; text-align:center; box-shadow:var(--shadow); }
-.sum-card .v{ font-family:'JetBrains Mono',monospace; font-weight:700; font-size:17px; }
-.sum-card .l{ font-size:10px; color:var(--ink-faint); margin-top:2px; letter-spacing:.01em; }
+/* ===== Сводка ===== */
+.summary{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; padding:10px 16px; }
+.sum-card{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-sm);
+  padding:11px 8px 10px; text-align:center; box-shadow:var(--shadow);
+  position:relative; overflow:hidden;
+}
+.sum-card .v{ font-family:'JetBrains Mono',monospace; font-weight:700; font-size:19px; line-height:1.1; }
+.sum-card .l{ font-size:10px; color:var(--ink-faint); margin-top:3px; letter-spacing:.01em; }
+.sum-card.warn::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--danger); }
 .sum-card.warn .v{ color:var(--danger); }
+.sum-card.tap:active{ background:var(--surface-2); }
 
-.search-wrap{ padding:0 16px 12px; }
+/* ===== Поиск + фильтры ===== */
+.search-wrap{ position:relative; padding:6px 16px 12px; }
+.search-wrap .si{ position:absolute; left:28px; top:50%; transform:translateY(-50%); color:var(--ink-faint); }
 .search-wrap input{
-  width:100%; min-height:42px; background:var(--surface-2); border:1px solid var(--line);
-  border-radius:999px; padding:0 16px; color:var(--ink); font-size:14px; font-family:'Inter',sans-serif;
+  width:100%; min-height:44px; background:var(--surface-2); border:1px solid var(--line);
+  border-radius:999px; padding:0 16px 0 40px; color:var(--ink); font-size:15px; font-family:'Inter',sans-serif;
 }
 .search-wrap input::placeholder{ color:var(--ink-faint); }
 .search-wrap input:focus{ outline:none; border-color:var(--accent); }
 
-.chip-group{ display:flex; gap:8px; padding:0 16px 14px; flex-wrap:wrap; }
+.chip-group{ display:flex; gap:8px; padding:0 16px 14px; }
 .chip{
-  display:flex; align-items:center; justify-content:center;
-  min-height:36px; padding:0 14px; border-radius:999px;
+  flex:1; display:flex; align-items:center; justify-content:center; gap:6px;
+  min-height:40px; padding:0 10px; border-radius:999px;
   background:var(--surface-2); border:1px solid var(--line);
   color:var(--ink-soft); font-size:13px; font-weight:600; cursor:pointer;
 }
-.chip input{display:none;}
-.chip.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
+.chip input{ display:none; }
+.chip .cnt{ font-family:'JetBrains Mono',monospace; font-size:11px; opacity:.7; }
+.chip.active{ background:var(--accent); border-color:var(--accent); color:#fff; box-shadow:0 4px 12px -4px var(--accent-soft); }
+.chip.active .cnt{ opacity:.85; }
 
+/* ===== Список ===== */
 .list{ padding:0 16px; display:flex; flex-direction:column; gap:10px;
-  padding-bottom: max(96px, calc(56px + var(--safe-bottom))); }
+  padding-bottom: max(100px, calc(60px + var(--safe-bottom))); }
 
 .card{
   background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
@@ -93,113 +127,176 @@ body{padding-top:var(--safe-top);}
 .card.is-overdue{ border-color:rgba(229,98,106,.4); }
 .card-top{ display:flex; align-items:flex-start; gap:10px; }
 .avatar{
-  width:34px; height:34px; border-radius:50%; flex:none;
+  width:36px; height:36px; border-radius:50%; flex:none;
   display:flex; align-items:center; justify-content:center;
   color:#fff; font-weight:700; font-size:14px; font-family:'Chakra Petch',sans-serif;
 }
 .card-main{ flex:1; min-width:0; }
-.card-title{ font-weight:600; font-size:15px; }
+.card-title{ font-weight:600; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .card-sub{ font-size:12.5px; color:var(--ink-soft); margin-top:1px; }
-.badge{ font-size:11px; font-weight:600; padding:3px 8px; border-radius:999px; white-space:nowrap; flex:none; }
+.badge{ font-size:11px; font-weight:600; padding:3px 9px; border-radius:999px; white-space:nowrap; flex:none; }
 .badge-active{ background:var(--accent-soft); color:var(--accent-dark); }
 .badge-overdue{ background:var(--danger-soft); color:var(--danger); }
 .badge-returned{ background:var(--ok-soft); color:var(--ok); }
 
 .card-dates{
-  display:flex; flex-wrap:wrap; gap:10px; margin-top:11px;
-  font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-soft);
+  display:flex; flex-direction:column; gap:3px; margin-top:11px;
+  font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--ink-soft);
 }
 .card-dates b{ color:var(--ink); font-weight:600; }
-.overdue-note{ margin-top:6px; font-size:12px; color:var(--danger); font-weight:600; }
+.card-dates .rel{ color:var(--ink-faint); }
+.card-dates .line.warn{ color:var(--danger); }
+.card-dates .line.warn b{ color:var(--danger); }
+
+.qty-wrap{ margin-top:11px; }
+.qty-bar{ height:6px; border-radius:999px; background:var(--surface-3); overflow:hidden; }
+.qty-bar-fill{ height:100%; background:var(--ok); border-radius:999px; transition:width .3s; }
+.qty-line{ font-size:11.5px; color:var(--ink-soft); margin-top:5px; font-family:'JetBrains Mono',monospace; }
+.qty-line b{ color:var(--ink); }
 
 .card-actions{ margin-top:12px; display:flex; gap:8px; }
 .btn-return, .btn-extend{
-  min-height:38px; flex:1; border:1px solid var(--line-strong); background:var(--surface-2);
+  min-height:40px; flex:1; border:1px solid var(--line-strong); background:var(--surface-2);
   color:var(--ink); border-radius:var(--radius-sm); font-size:12.5px; font-weight:600;
+  display:flex; align-items:center; justify-content:center; gap:6px;
 }
 .btn-return:active, .btn-extend:active{ background:var(--surface-3); }
 .btn-return{ color:var(--ok); }
 .btn-return:disabled, .btn-extend:disabled{ opacity:.5; }
 
-.empty{ text-align:center; color:var(--ink-faint); font-size:13px; padding:50px 20px; }
-.empty .ic{ font-size:30px; margin-bottom:8px; }
+/* ===== Пустые состояния / скелет ===== */
+.empty{ text-align:center; color:var(--ink-faint); font-size:13px; padding:48px 20px; }
+.empty .ic{ margin:0 auto 10px; color:var(--ink-faint); }
 .empty .retry{
-  margin-top:12px; display:inline-block; padding:8px 16px; border-radius:999px;
+  margin-top:14px; display:inline-block; padding:9px 18px; border-radius:999px;
   background:var(--surface-2); border:1px solid var(--line); color:var(--ink); font-size:12.5px; font-weight:600;
 }
+.skeleton-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:14px; }
+.sk{ border-radius:6px; background:var(--surface-3); background-image:var(--skeleton); background-size:200% 100%; animation:sk 1.3s ease-in-out infinite; }
+@keyframes sk{ 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
 
+/* ===== Нижняя панель ===== */
 .submit-bar{
-  position:fixed; left:0; right:0; bottom:0;
+  position:fixed; left:0; right:0; bottom:0; z-index:5;
   padding:12px 16px calc(12px + var(--safe-bottom));
   background:var(--bg); border-top:1px solid var(--line);
 }
 .btn-main{
-  width:100%; min-height:48px; border:none; border-radius:var(--radius-sm);
+  width:100%; min-height:50px; border:none; border-radius:var(--radius-sm);
   background:var(--accent); color:#fff; font-family:'Chakra Petch',sans-serif;
   font-weight:700; font-size:15px; letter-spacing:.02em;
+  display:flex; align-items:center; justify-content:center; gap:8px;
 }
 .btn-main:active{ background:var(--accent-dark); }
 .btn-main:disabled{ opacity:.6; }
+.btn-main.ghost{ background:var(--surface-2); color:var(--ink); border:1px solid var(--line-strong); }
 
+/* ===== Шторки ===== */
 .sheet-overlay{
-  position:fixed; inset:0; background:rgba(0,0,0,.4);
-  opacity:0; visibility:hidden; transition:opacity .25s, visibility .25s;
-  z-index:10;
+  position:fixed; inset:0; background:rgba(0,0,0,.45);
+  opacity:0; visibility:hidden; transition:opacity .25s, visibility .25s; z-index:10;
 }
 .sheet-overlay.open{ opacity:1; visibility:visible; }
-
 .sheet{
   position:fixed; left:0; right:0; bottom:0; z-index:11;
   background:var(--surface); border-radius:20px 20px 0 0;
-  padding:16px 16px calc(16px + var(--safe-bottom));
+  padding:8px 16px calc(16px + var(--safe-bottom));
   transform:translateY(110%); opacity:0; visibility:hidden;
   transition:transform .25s, opacity .25s;
-  max-height:88vh; overflow-y:auto;
+  max-height:90vh; overflow-y:auto;
 }
 .sheet.open{ transform:translateY(0); opacity:1; visibility:visible; }
+.sheet .grip{ width:36px; height:4px; border-radius:999px; background:var(--line-strong); margin:6px auto 12px; }
 
 .sheet-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
 .sheet-head h2{ font-family:'Chakra Petch',sans-serif; font-size:17px; margin:0; }
 .close-btn{
   width:32px; height:32px; border-radius:50%; border:none; background:var(--surface-2);
-  color:var(--ink-soft); font-size:16px; display:flex; align-items:center; justify-content:center;
+  color:var(--ink-soft); display:flex; align-items:center; justify-content:center;
 }
 
 .field{ margin-bottom:14px; }
-.field label{
+.field > label{
   display:block; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600;
   color:var(--ink-faint); text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px;
 }
-.field input{
-  width:100%; min-height:44px; background:var(--surface-2); border:1px solid var(--line);
-  border-radius:var(--radius-sm); padding:0 12px; color:var(--ink); font-size:15px;
+.field > input{
+  width:100%; min-height:46px; background:var(--surface-2); border:1px solid var(--line);
+  border-radius:var(--radius-sm); padding:0 12px; color:var(--ink); font-size:16px;
   font-family:'Inter',sans-serif;
 }
-.field input[type="date"]{ font-family:'JetBrains Mono',monospace; font-size:14px; }
-.field input:focus{ outline:none; border-color:var(--accent); }
-.field-hint{ font-size:11px; color:var(--ink-faint); margin-top:5px; }
-.field-row{ display:flex; gap:10px; }
-.field-row .field{ flex:1; }
+.field > input[type="date"]{ font-family:'JetBrains Mono',monospace; font-size:15px; }
+.field > input:focus{ outline:none; border-color:var(--accent); }
+.field-hint{ font-size:11.5px; color:var(--ink-faint); margin-top:6px; }
+.field-hint.warn{ color:var(--danger); }
+
+/* ===== Степпер количества ===== */
+.stepper{
+  display:flex; align-items:stretch; background:var(--surface-2);
+  border:1px solid var(--line); border-radius:var(--radius-sm); overflow:hidden; max-width:220px;
+}
+.stepper-btn{
+  width:52px; flex:none; border:none; background:transparent; color:var(--ink);
+  display:flex; align-items:center; justify-content:center;
+}
+.stepper-btn:active{ background:var(--surface-3); }
+.stepper-btn:disabled{ opacity:.3; }
+.stepper input{
+  flex:1; min-width:0; width:100%; border:none; background:transparent; text-align:center;
+  color:var(--ink); font-family:'JetBrains Mono',monospace; font-weight:700; font-size:18px;
+  border-left:1px solid var(--line); border-right:1px solid var(--line);
+}
+.stepper input:focus{ outline:none; }
+.stepper input::-webkit-outer-spin-button,
+.stepper input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+.stepper input[type=number]{ -moz-appearance:textfield; }
+
+.mini-chips{ display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+.mini-chip{
+  min-height:34px; padding:0 12px; border-radius:999px; border:1px solid var(--line);
+  background:var(--surface-2); color:var(--ink-soft); font-size:12px; font-weight:600;
+  display:flex; align-items:center;
+}
+.mini-chip:active{ background:var(--surface-3); }
+.mini-chip.on{ background:var(--accent); border-color:var(--accent); color:#fff; }
 
 .detail-row{
   display:flex; justify-content:space-between; align-items:flex-start; gap:12px;
   padding:11px 0; border-bottom:1px solid var(--line); font-size:13.5px;
 }
-.detail-row:last-child{ border-bottom:none; }
+.detail-row:last-of-type{ border-bottom:none; }
 .detail-row span{ color:var(--ink-soft); flex:none; }
 .detail-row b{ text-align:right; font-weight:600; }
 
 .hidden{ display:none !important; }
+
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration:.001ms !important; transition-duration:.001ms !important; }
+}
 </style>
 </head>
 <body>
 
+<!-- Иконки (inline SVG, stroke 1.75, currentColor) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <g id="i-wrench"><path d="M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.3 2.3-2.7-.7-.7-2.7 2.4-2.2Z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></g>
+  <g id="i-search"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></g>
+  <g id="i-refresh"><path d="M20 11a8 8 0 1 0-.8 3.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><path d="M20 4v6h-6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></g>
+  <g id="i-plus"><path d="M12 6v12M6 12h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></g>
+  <g id="i-minus"><path d="M6 12h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></g>
+  <g id="i-check"><path d="m5 12 5 5L20 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
+  <g id="i-box"><path d="M3 8 12 3l9 5v8l-9 5-9-5V8Z M3 8l9 5 9-5 M12 13v10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></g>
+  <g id="i-clock"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M12 8v4l3 2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></g>
+</defs></svg>
+
 <div id="app">
   <div class="topbar">
-    <div>
-      <h1>🔧 Инструмент</h1>
+    <div class="glyph"><svg width="22" height="22" viewBox="0 0 24 24"><use href="#i-wrench"/></svg></div>
+    <div class="tt">
+      <h1>Инструмент</h1>
       <p>Кто взял, что взял, когда вернуть</p>
     </div>
+    <button class="icon-btn" id="refreshBtn" aria-label="Обновить"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#i-refresh"/></svg></button>
   </div>
 
   <div class="demo-banner hidden" id="demoBanner">Демо-режим: бэкенд ещё не подключён, изменения не сохраняются</div>
@@ -207,44 +304,50 @@ body{padding-top:var(--safe-top);}
   <div class="summary" id="summary"></div>
 
   <div class="search-wrap">
-    <input type="text" id="search" placeholder="Поиск по инструменту или имени...">
+    <span class="si"><svg width="17" height="17" viewBox="0 0 24 24"><use href="#i-search"/></svg></span>
+    <input type="text" id="search" placeholder="Инструмент или имя..." autocomplete="off">
   </div>
 
   <div class="chip-group" id="filterGroup">
-    <label class="chip active" data-filter="open"><input type="radio" name="filter" checked>Не возвращено</label>
-    <label class="chip" data-filter="overdue"><input type="radio" name="filter">Просрочено</label>
-    <label class="chip" data-filter="all"><input type="radio" name="filter">Все</label>
+    <label class="chip active" data-filter="open"><input type="radio" name="filter" checked>Не возвращено <span class="cnt" data-cnt="open"></span></label>
+    <label class="chip" data-filter="overdue"><input type="radio" name="filter">Просрочено <span class="cnt" data-cnt="overdue"></span></label>
+    <label class="chip" data-filter="all"><input type="radio" name="filter">Все <span class="cnt" data-cnt="all"></span></label>
   </div>
 
   <div class="list" id="list"></div>
 
   <div class="submit-bar">
-    <button class="btn-main" id="openAddBtn">+ Записать выдачу</button>
+    <button class="btn-main" id="openAddBtn"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#i-plus"/></svg> Записать выдачу</button>
   </div>
 </div>
 
+<!-- ===== Новая выдача ===== -->
 <div class="sheet-overlay" id="overlay"></div>
 <div class="sheet" id="sheet">
+  <div class="grip"></div>
   <div class="sheet-head">
     <h2>Новая выдача</h2>
-    <button class="close-btn" id="closeSheetBtn">✕</button>
+    <button class="close-btn" id="closeSheetBtn" aria-label="Закрыть"><svg width="15" height="15" viewBox="0 0 24 24"><path d="m5 5 14 14M19 5 5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
   </div>
 
   <div class="field">
     <label>Инструмент</label>
-    <input type="text" id="f_item" list="itemSuggestions" placeholder="Например: болгарка">
+    <input type="text" id="f_item" list="itemSuggestions" placeholder="Например: болгарка" autocomplete="off">
     <datalist id="itemSuggestions"></datalist>
   </div>
 
-  <div class="field-row">
-    <div class="field">
-      <label>Кому</label>
-      <input type="text" id="f_who" list="whoSuggestions" placeholder="Имя">
-      <datalist id="whoSuggestions"></datalist>
-    </div>
-    <div class="field" style="max-width:110px;">
-      <label>Кол-во</label>
-      <input type="number" inputmode="numeric" id="f_qty" placeholder="1">
+  <div class="field">
+    <label>Кому</label>
+    <input type="text" id="f_who" list="whoSuggestions" placeholder="Имя" autocomplete="off">
+    <datalist id="whoSuggestions"></datalist>
+  </div>
+
+  <div class="field">
+    <label>Количество</label>
+    <div class="stepper" id="qtyStepper">
+      <button type="button" class="stepper-btn" data-act="dec" aria-label="Меньше"><svg width="20" height="20" viewBox="0 0 24 24"><use href="#i-minus"/></svg></button>
+      <input type="number" inputmode="numeric" id="f_qty" value="1" min="1" max="999">
+      <button type="button" class="stepper-btn" data-act="inc" aria-label="Больше"><svg width="20" height="20" viewBox="0 0 24 24"><use href="#i-plus"/></svg></button>
     </div>
   </div>
 
@@ -256,46 +359,62 @@ body{padding-top:var(--safe-top);}
   <div class="field">
     <label>Когда напомнить</label>
     <input type="date" id="f_confirm">
+    <div class="mini-chips" id="remindChips">
+      <button type="button" class="mini-chip" data-m="1">+1 мес</button>
+      <button type="button" class="mini-chip" data-m="3">+3 мес</button>
+      <button type="button" class="mini-chip" data-m="6">+6 мес</button>
+    </div>
     <div class="field-hint">Авто: выдача + 3 мес. Можно поправить вручную.</div>
   </div>
 
   <div class="field">
     <label>Комментарий</label>
-    <input type="text" id="f_comment" placeholder="Необязательно">
+    <input type="text" id="f_comment" placeholder="Необязательно" autocomplete="off">
   </div>
 
-  <button class="btn-main" id="saveBtn">Сохранить</button>
+  <button class="btn-main" id="saveBtn"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#i-check"/></svg> Сохранить</button>
 </div>
 
+<!-- ===== Возврат ===== -->
 <div class="sheet-overlay" id="returnOverlay"></div>
 <div class="sheet" id="returnSheet">
+  <div class="grip"></div>
   <div class="sheet-head">
-    <h2>Возврат</h2>
-    <button class="close-btn" id="closeReturnBtn">✕</button>
+    <h2>Отметить возврат</h2>
+    <button class="close-btn" id="closeReturnBtn" aria-label="Закрыть"><svg width="15" height="15" viewBox="0 0 24 24"><path d="m5 5 14 14M19 5 5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
   </div>
   <div class="field">
     <label>Сколько возвращают</label>
-    <input type="number" inputmode="numeric" id="f_returnQty">
+    <div class="stepper" id="returnStepper">
+      <button type="button" class="stepper-btn" data-act="dec" aria-label="Меньше"><svg width="20" height="20" viewBox="0 0 24 24"><use href="#i-minus"/></svg></button>
+      <input type="number" inputmode="numeric" id="f_returnQty" min="1">
+      <button type="button" class="stepper-btn" data-act="inc" aria-label="Больше"><svg width="20" height="20" viewBox="0 0 24 24"><use href="#i-plus"/></svg></button>
+    </div>
+    <div class="mini-chips">
+      <button type="button" class="mini-chip" id="returnAllBtn">Вернуть всё</button>
+    </div>
     <div class="field-hint" id="returnHint"></div>
   </div>
-  <button class="btn-main" id="confirmReturnBtn">Подтвердить возврат</button>
+  <button class="btn-main" id="confirmReturnBtn"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#i-check"/></svg> Подтвердить возврат</button>
 </div>
 
+<!-- ===== Детали ===== -->
 <div class="sheet-overlay" id="detailOverlay"></div>
 <div class="sheet" id="detailSheet">
+  <div class="grip"></div>
   <div class="sheet-head">
     <h2>Детали выдачи</h2>
-    <button class="close-btn" id="closeDetailBtn">✕</button>
+    <button class="close-btn" id="closeDetailBtn" aria-label="Закрыть"><svg width="15" height="15" viewBox="0 0 24 24"><path d="m5 5 14 14M19 5 5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
   </div>
   <div id="detailBody"></div>
-  <button class="btn-main hidden" id="detailConfirmBtn" style="margin-top:6px;">Ещё нужен</button>
+  <button class="btn-main hidden" id="detailConfirmBtn" style="margin-top:14px;"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#i-clock"/></svg> Ещё нужен</button>
 </div>
 
 <script>
 const tg = window.Telegram ? window.Telegram.WebApp : null;
 
-/* Доступ к самой кнопке этого Mini App уже ограничен тегом в LEADTEX —
-   отдельная проверка внутри страницы не нужна, поэтому её тут нет. */
+/* Доступ к кнопке этого Mini App ограничен тегом в LEADTEX —
+   отдельная проверка внутри страницы не нужна. */
 
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzx2d6GZ-ERLAzcd7HpjRofwF5DYE03Bj9fIk_U0kyT4if7b5cF6JJlMB8nJUhalZki/exec";
 const BACKEND_READY = !APPS_SCRIPT_URL.includes("ВСТАВЬ");
@@ -326,12 +445,27 @@ function confirmAsync(message){
   });
 }
 
+/* ===== Единый стек шторок + одна кнопка BackButton ===== */
+const sheetStack = [];
+function pushSheet(closeFn){
+  sheetStack.push(closeFn);
+  if (tg && tg.BackButton) tg.BackButton.show();
+}
+function popSheet(){
+  sheetStack.pop();
+  if (tg && tg.BackButton && sheetStack.length === 0) tg.BackButton.hide();
+}
+
 function initTelegram() {
   if (!tg) return;
   tg.ready(); tg.expand();
   applyTelegramTheme();
   tg.onEvent && tg.onEvent('themeChanged', applyTelegramTheme);
   if (tg.isVersionAtLeast && tg.isVersionAtLeast('7.7')) { try { tg.disableVerticalSwipes(); } catch(e) {} }
+  if (tg.BackButton) tg.BackButton.onClick(()=>{
+    const fn = sheetStack[sheetStack.length - 1];
+    if (fn) fn();
+  });
 }
 
 function currentUserName(){
@@ -339,63 +473,37 @@ function currentUserName(){
   return u ? (u.first_name || u.username || "Кто-то из своих") : "Кто-то из своих";
 }
 
-/* ===== API =========================================================
-   Без проверки подлинности — доступ к кнопке уже отфильтрован в LEADTEX.
-   "by" передаётся просто как имя из Telegram, бэкенд использует его
-   только для текста уведомления, не для допуска.
-================================================================= */
-
+/* ===== API =====
+   initData — подписанные данные Telegram (бэкенд проверяет их при REQUIRE_AUTH=1).
+   reqId    — ключ идемпотентности: повторный тап по «Сохранить» не создаёт дубль. */
+const INIT_DATA = (tg && tg.initData) || "";
+function uuid(){
+  return (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID()
+    : "r-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+}
+async function apiPost(payload){
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(Object.assign({ initData: INIT_DATA, by: currentUserName() }, payload))
+  });
+  return res.json();
+}
 async function apiList(){
-  const res = await fetch(APPS_SCRIPT_URL + "?action=list");
+  const url = APPS_SCRIPT_URL + "?action=list"
+    + (INIT_DATA ? "&initData=" + encodeURIComponent(INIT_DATA) : "");
+  const res = await fetch(url);
   return res.json();
 }
-async function apiAdd(payload){
-  const res = await fetch(APPS_SCRIPT_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(Object.assign({ action:"add", by: currentUserName() }, payload))
-  });
-  return res.json();
-}
-async function apiReturn(id, qty, returned){
-  const res = await fetch(APPS_SCRIPT_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ action:"return", id, qty, returned })
-  });
-  return res.json();
-}
-async function apiExtend(id, confirm){
-  const res = await fetch(APPS_SCRIPT_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ action:"extend", id, confirm })
-  });
-  return res.json();
-}
+async function apiAdd(payload){ return apiPost(Object.assign({ action:"add", reqId: uuid() }, payload)); }
+async function apiReturn(id, qty, returned){ return apiPost({ action:"return", id, qty, returned, reqId: uuid() }); }
 async function apiConfirm(id, confirmedAt, confirmedBy, confirm){
-  const res = await fetch(APPS_SCRIPT_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ action:"confirm", id, confirmedAt, confirmedBy, confirm })
-  });
-  return res.json();
+  return apiPost({ action:"confirm", id, confirmedAt, confirmedBy, confirm, reqId: uuid() });
 }
 
-/* ===== ДАННЫЕ ====================================================== */
-
+/* ===== Данные ===== */
 let records = [];
 let nextId = 1;
-function seedMockRecords(){
-  records = [
-    { id: 5, item: "Доски обрезные", who: "Виктор", issued: daysAgo(5), confirm: addMonths(daysAgo(5), 3), returned: null, by: "Денис", confirmedAt: null, confirmedBy: null, qty: 20, returnedQty: 8, comment: "Для забора" },
-    { id: 4, item: "Болгарка Bosch", who: "Сергей (наёмный)", issued: daysAgo(10), confirm: addMonths(daysAgo(10), 3), returned: null, by: "Денис", confirmedAt: null, confirmedBy: null, qty: 1, returnedQty: 0, comment: "" },
-    { id: 3, item: "Дрель Makita", who: "Виктор", issued: daysAgo(95), confirm: addMonths(daysAgo(95), 3), returned: null, by: "Андрей", confirmedAt: daysAgo(20), confirmedBy: "Андрей", qty: 1, returnedQty: 0, comment: "" },
-    { id: 2, item: "Бензопила Stihl", who: "Николай", issued: daysAgo(40), confirm: addMonths(daysAgo(40), 3), returned: null, by: "Анатолий", confirmedAt: null, confirmedBy: null, qty: 1, returnedQty: 0, comment: "" },
-    { id: 1, item: "Триммер Husqvarna", who: "Николай", issued: daysAgo(20), confirm: addMonths(daysAgo(20), 3), returned: daysAgo(2), by: "Денис", confirmedAt: null, confirmedBy: null, qty: 1, returnedQty: 1, comment: "" },
-  ];
-  nextId = 6;
-}
 let currentFilter = "open";
 let searchQuery = "";
 let isLoading = false;
@@ -403,26 +511,65 @@ let isLoading = false;
 const AVATAR_COLORS = ["#2AABEE","#B369D6","#E0952E","#38A89D","#E5626A","#C08A4E"];
 
 function daysAgo(n){ const d = new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); }
-function addMonths(dateStr, n){ const d = new Date(dateStr); d.setMonth(d.getMonth()+n); return d.toISOString().slice(0,10); }
+function addMonths(dateStr, n){ const d = new Date(dateStr || todayStr()); d.setMonth(d.getMonth()+n); return d.toISOString().slice(0,10); }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
 function fmt(dateStr){
   if (!dateStr) return "—";
-  const [y,m,d] = dateStr.split("-");
-  return `${d}.${m}.${y}`;
+  const [y,m,d] = String(dateStr).split("-");
+  return d ? `${d}.${m}.${y}` : String(dateStr);
 }
-function daysBetween(a, b){
-  return Math.round((new Date(a) - new Date(b)) / 86400000);
+function daysBetween(a, b){ return Math.round((new Date(a) - new Date(b)) / 86400000); }
+function relDays(dateStr){
+  if (!dateStr) return "";
+  const diff = daysBetween(dateStr, todayStr());
+  const abs = Math.abs(diff);
+  let unit;
+  if (abs === 0) return "сегодня";
+  if (abs < 45) unit = plural(abs, "день","дня","дней");
+  else { const mo = Math.round(abs/30); unit = plural(mo, "месяц","месяца","месяцев"); }
+  return diff > 0 ? `через ${unit}` : `${unit} назад`;
+}
+function plural(n, one, few, many){
+  const m10 = n % 10, m100 = n % 100;
+  let w = many;
+  if (m10 === 1 && m100 !== 11) w = one;
+  else if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) w = few;
+  return `${n} ${w}`;
 }
 function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 function avatarColor(name){
+  const s = String(name || "?");
   let h = 0;
-  for (let i=0;i<name.length;i++) h = (h + name.charCodeAt(i)) % AVATAR_COLORS.length;
+  for (let i=0;i<s.length;i++) h = (h + s.charCodeAt(i)) % AVATAR_COLORS.length;
   return AVATAR_COLORS[h];
 }
-function initial(name){
-  return (name.trim()[0] || "?").toUpperCase();
+function initial(name){ return (String(name || "?").trim()[0] || "?").toUpperCase(); }
+
+function normalizeRecord(r){
+  return Object.assign({}, r, {
+    id: Number(r.id),
+    item: r.item || "",
+    who: r.who || "",
+    issued: r.issued || "",
+    confirm: r.confirm || "",
+    returned: r.returned || null,
+    qty: Number(r.qty) || 1,
+    returnedQty: Number(r.returnedQty) || 0,
+    comment: r.comment || ""
+  });
+}
+
+function seedMockRecords(){
+  records = [
+    { id: 5, item: "Доски обрезные", who: "Виктор", issued: daysAgo(5), confirm: addMonths(daysAgo(5), 3), returned: null, by: "Денис", confirmedAt: null, confirmedBy: null, qty: 20, returnedQty: 8, comment: "Для забора" },
+    { id: 4, item: "Болгарка Bosch", who: "Сергей (наёмный)", issued: daysAgo(10), confirm: addMonths(daysAgo(10), 3), returned: null, by: "Денис", confirmedAt: null, confirmedBy: null, qty: 1, returnedQty: 0, comment: "" },
+    { id: 3, item: "Дрель Makita", who: "Виктор", issued: daysAgo(95), confirm: addMonths(daysAgo(95), 3), returned: null, by: "Андрей", confirmedAt: daysAgo(20), confirmedBy: "Андрей", qty: 1, returnedQty: 0, comment: "" },
+    { id: 2, item: "Бензопила Stihl", who: "Николай", issued: daysAgo(40), confirm: addMonths(daysAgo(40), 3), returned: null, by: "Анатолий", confirmedAt: null, confirmedBy: null, qty: 1, returnedQty: 0, comment: "" },
+    { id: 1, item: "Триммер Husqvarna", who: "Николай", issued: daysAgo(20), confirm: addMonths(daysAgo(20), 3), returned: daysAgo(2), by: "Денис", confirmedAt: null, confirmedBy: null, qty: 1, returnedQty: 1, comment: "" },
+  ].map(normalizeRecord);
+  nextId = 6;
 }
 
 function updateSuggestions(){
@@ -432,26 +579,20 @@ function updateSuggestions(){
   document.getElementById("whoSuggestions").innerHTML = whos.map(v=>`<option value="${escapeHtml(v)}">`).join("");
 }
 
-function isOverdue(r){
-  return !r.returned && r.confirm && r.confirm < todayStr();
-}
+function isOverdue(r){ return !r.returned && r.confirm && r.confirm < todayStr(); }
+function remainingOf(r){ return (r.qty || 1) - (r.returnedQty || 0); }
 
-async function loadRecords(){
-  if (!BACKEND_READY){
-    render();
-    return;
-  }
-  isLoading = true;
-  render();
+/* ===== Загрузка ===== */
+async function loadRecords(opts){
+  opts = opts || {};
+  if (!BACKEND_READY){ render(); return; }
+  if (!opts.soft){ isLoading = true; renderSkeleton(); }
   try {
     const data = await apiList();
-    if (data.error){
-      renderError("Ошибка сервера: " + data.error);
-      return;
-    }
-    records = data.records.map(r => Object.assign({}, r, { id: Number(r.id) }));
+    if (data.error){ if (!opts.soft) renderError("Ошибка сервера: " + data.error); return; }
+    records = (data.records || []).map(normalizeRecord);
   } catch(err){
-    renderError("Нет связи с таблицей. Проверь интернет и попробуй ещё раз.");
+    if (!opts.soft) renderError("Нет связи с таблицей. Проверь интернет и попробуй ещё раз.");
     return;
   } finally {
     isLoading = false;
@@ -459,35 +600,58 @@ async function loadRecords(){
   render();
 }
 
+function renderSkeleton(){
+  document.getElementById("summary").innerHTML =
+    Array(3).fill('<div class="sum-card"><div class="sk" style="height:19px;width:60%;margin:0 auto"></div><div class="sk" style="height:9px;width:80%;margin:6px auto 0"></div></div>').join("");
+  document.getElementById("list").innerHTML = Array(3).fill(
+    '<div class="skeleton-card"><div style="display:flex;gap:10px"><div class="sk" style="width:36px;height:36px;border-radius:50%"></div>'+
+    '<div style="flex:1"><div class="sk" style="height:14px;width:55%"></div><div class="sk" style="height:11px;width:35%;margin-top:7px"></div></div></div>'+
+    '<div class="sk" style="height:11px;width:70%;margin-top:14px"></div><div class="sk" style="height:40px;margin-top:12px;border-radius:11px"></div></div>'
+  ).join("");
+}
+
 function renderError(message){
   isLoading = false;
   document.getElementById("summary").innerHTML = "";
   document.getElementById("list").innerHTML =
-    `<div class="empty"><div class="ic">⚠️</div>${escapeHtml(message)}<div><span class="retry" id="retryBtn">Повторить</span></div></div>`;
+    `<div class="empty"><div class="ic"><svg width="30" height="30" viewBox="0 0 24 24"><use href="#i-box"/></svg></div>${escapeHtml(message)}<div><span class="retry" id="retryBtn">Повторить</span></div></div>`;
   const retry = document.getElementById("retryBtn");
-  if (retry) retry.addEventListener("click", loadRecords);
+  if (retry) retry.addEventListener("click", ()=>loadRecords());
 }
 
 function renderSummary(){
-  const onHand = records.filter(r=>!r.returned).length;
+  const active = records.filter(r=>!r.returned);
+  const unitsOut = active.reduce((s,r)=> s + remainingOf(r), 0);
   const overdue = records.filter(isOverdue).length;
-  const total = records.length;
+  const returned = records.filter(r=>r.returned).length;
   document.getElementById("summary").innerHTML = `
-    <div class="sum-card"><div class="v">${onHand}</div><div class="l">На руках</div></div>
-    <div class="sum-card ${overdue>0?'warn':''}"><div class="v">${overdue}</div><div class="l">Просрочено</div></div>
-    <div class="sum-card"><div class="v">${total}</div><div class="l">Всего выдач</div></div>
+    <div class="sum-card"><div class="v">${unitsOut}</div><div class="l">единиц на руках</div></div>
+    <div class="sum-card ${overdue>0?'warn tap':''}" ${overdue>0?'data-jump="overdue"':''}><div class="v">${overdue}</div><div class="l">просрочено</div></div>
+    <div class="sum-card"><div class="v">${returned}</div><div class="l">возвращено</div></div>
   `;
+  const jump = document.querySelector('.sum-card[data-jump]');
+  if (jump) jump.addEventListener("click", ()=> setFilter("overdue"));
+}
+
+function updateFilterCounts(){
+  const counts = {
+    open: records.filter(r=>!r.returned).length,
+    overdue: records.filter(isOverdue).length,
+    all: records.length
+  };
+  document.querySelectorAll("#filterGroup .cnt").forEach(el=>{
+    const k = el.dataset.cnt;
+    el.textContent = counts[k] != null ? counts[k] : "";
+  });
 }
 
 function render(){
-  if (isLoading){
-    document.getElementById("summary").innerHTML = "";
-    document.getElementById("list").innerHTML = `<div class="empty">Загрузка...</div>`;
-    return;
-  }
+  if (isLoading){ renderSkeleton(); return; }
 
   renderSummary();
   updateSuggestions();
+  updateFilterCounts();
+
   const list = document.getElementById("list");
   let items = records.slice();
 
@@ -495,56 +659,64 @@ function render(){
     const q = searchQuery.toLowerCase();
     items = items.filter(r => r.item.toLowerCase().includes(q) || r.who.toLowerCase().includes(q));
   }
-
   if (currentFilter === "open") items = items.filter(r => !r.returned);
   if (currentFilter === "overdue") items = items.filter(isOverdue);
 
   items.sort((a,b)=>{
     const aActive = !a.returned, bActive = !b.returned;
-    if (aActive && !bActive) return -1;
-    if (!aActive && bActive) return 1;
-    if (aActive && bActive) return a.confirm.localeCompare(b.confirm);
-    return b.returned.localeCompare(a.returned);
+    if (aActive !== bActive) return aActive ? -1 : 1;
+    if (aActive) return String(a.confirm).localeCompare(String(b.confirm));
+    return String(b.returned).localeCompare(String(a.returned));
   });
 
   if (items.length === 0){
-    list.innerHTML = `<div class="empty"><div class="ic">🧰</div>Ничего не найдено</div>`;
+    const msg = searchQuery ? "Ничего не найдено"
+      : currentFilter === "overdue" ? "Просроченных нет — всё под контролем"
+      : currentFilter === "open" ? "Весь инструмент на месте"
+      : "Записей пока нет";
+    list.innerHTML = `<div class="empty"><div class="ic"><svg width="30" height="30" viewBox="0 0 24 24"><use href="#i-box"/></svg></div>${msg}</div>`;
     return;
   }
 
   list.innerHTML = items.map(r => {
-    let badge = `<span class="badge badge-active">Активно</span>`;
-    let overdueNote = "";
-    if (r.returned) {
-      badge = `<span class="badge badge-returned">Возвращено ${fmt(r.returned)}</span>`;
-    } else if (isOverdue(r)) {
-      badge = `<span class="badge badge-overdue">Просрочено</span>`;
-      overdueNote = `<div class="overdue-note">Просрочено на ${daysBetween(todayStr(), r.confirm)} дн.</div>`;
-    }
-
     const qty = r.qty || 1;
     const returnedQty = r.returnedQty || 0;
     const remaining = qty - returnedQty;
+    const overdue = isOverdue(r);
+
+    let badge = `<span class="badge badge-active">Активно</span>`;
+    if (r.returned) badge = `<span class="badge badge-returned">Возвращено ${fmt(r.returned)}</span>`;
+    else if (overdue) badge = `<span class="badge badge-overdue">Просрочено</span>`;
+
+    const remindLine = r.returned ? "" : `
+      <div class="line ${overdue?'warn':''}">Напомнить: <b>${fmt(r.confirm)}</b>
+        <span class="rel">· ${overdue ? "просрочено на " + plural(Math.abs(daysBetween(todayStr(), r.confirm)), "день","дня","дней") : relDays(r.confirm)}</span>
+      </div>`;
+
+    const qtyBlock = (qty > 1) ? `
+      <div class="qty-wrap">
+        <div class="qty-bar"><div class="qty-bar-fill" style="width:${Math.round(returnedQty/qty*100)}%"></div></div>
+        <div class="qty-line">${r.returned ? `Возвращено всё · ${qty} шт` : `Осталось <b>${remaining}</b> из ${qty} шт`}</div>
+      </div>` : "";
 
     return `
-      <div class="card ${isOverdue(r) ? 'is-overdue' : ''}" data-id="${r.id}">
+      <div class="card ${overdue ? 'is-overdue' : ''}" data-id="${r.id}">
         <div class="card-top">
           <div class="avatar" style="background:${avatarColor(r.who)}">${initial(r.who)}</div>
           <div class="card-main">
             <div class="card-title">${escapeHtml(r.item)}</div>
-            <div class="card-sub">Кому: ${escapeHtml(r.who)}</div>
+            <div class="card-sub">Кому: ${escapeHtml(r.who)}${qty > 1 ? ` · ${qty} шт` : ""}</div>
           </div>
           ${badge}
         </div>
         <div class="card-dates">
-          <div>Выдано: <b>${fmt(r.issued)}</b></div>
-          <div>Напомнить: <b>${fmt(r.confirm)}</b></div>
-          ${qty > 1 ? `<div>Кол-во: <b>${returnedQty > 0 ? `${remaining} из ${qty}` : qty}</b></div>` : ""}
+          <div class="line">Выдано: <b>${fmt(r.issued)}</b> <span class="rel">· ${relDays(r.issued)}</span></div>
+          ${remindLine}
         </div>
-        ${overdueNote}
+        ${qtyBlock}
         ${!r.returned ? `
           <div class="card-actions">
-            <button class="btn-return" data-id="${r.id}">Отметить возврат</button>
+            <button class="btn-return" data-id="${r.id}"><svg width="15" height="15" viewBox="0 0 24 24"><use href="#i-check"/></svg> Отметить возврат</button>
           </div>` : ""}
       </div>
     `;
@@ -556,17 +728,14 @@ function render(){
       const id = Number(btn.dataset.id);
       const rec = records.find(r=>r.id===id);
       if (!rec) return;
-      const remaining = (rec.qty || 1) - (rec.returnedQty || 0);
-      if (remaining <= 1) {
-        handleReturnDirect(id, remaining);
-      } else {
-        openReturnSheet(id, remaining);
-      }
+      const remaining = remainingOf(rec);
+      if (remaining <= 1) handleReturnDirect(id, remaining);
+      else openReturnSheet(id, remaining);
     });
   });
-
 }
 
+/* ===== Возврат ===== */
 async function handleReturnDirect(id, qty){
   const ok = await confirmAsync("Отметить инструмент как возвращённый?");
   if (!ok) return;
@@ -574,46 +743,111 @@ async function handleReturnDirect(id, qty){
 }
 
 async function doReturn(id, qty){
+  const rec = records.find(r=>r.id===id);
+  if (!rec) return;
+  qty = Math.max(1, Math.min(qty, remainingOf(rec)));
   const returnedDate = todayStr();
+
   if (BACKEND_READY){
     try {
       const res = await apiReturn(id, qty, returnedDate);
       if (res.error){ haptic("error"); return; }
-      await loadRecords();
     } catch(e){ haptic("error"); return; }
+    // локально обновляем сразу, точную картину досинхронизируем в фоне
+    applyReturnLocal(rec, qty, returnedDate);
+    haptic("success"); render();
+    loadRecords({ soft:true });
   } else {
-    const rec = records.find(r=>r.id===id);
-    if (rec) {
-      rec.returnedQty = (rec.returnedQty || 0) + qty;
-      if (rec.returnedQty >= (rec.qty || 1)) rec.returned = returnedDate;
-    }
+    applyReturnLocal(rec, qty, returnedDate);
+    haptic("success"); render();
   }
-  haptic("success");
-  render();
+}
+function applyReturnLocal(rec, qty, returnedDate){
+  rec.returnedQty = (rec.returnedQty || 0) + qty;
+  if (rec.returnedQty >= (rec.qty || 1)) rec.returned = returnedDate;
 }
 
+/* ===== Поиск / фильтры ===== */
 document.getElementById("search").addEventListener("input", (e)=>{
   searchQuery = e.target.value.trim();
   render();
 });
 
+function setFilter(f){
+  currentFilter = f;
+  document.querySelectorAll("#filterGroup .chip").forEach(c=>{
+    const on = c.dataset.filter === f;
+    c.classList.toggle("active", on);
+    const inp = c.querySelector("input"); if (inp) inp.checked = on;
+  });
+  render();
+}
 document.getElementById("filterGroup").addEventListener("click", (e)=>{
   const chip = e.target.closest(".chip");
-  if (!chip) return;
-  document.querySelectorAll("#filterGroup .chip").forEach(c=>c.classList.remove("active"));
-  chip.classList.add("active");
-  chip.querySelector("input").checked = true;
-  currentFilter = chip.dataset.filter;
-  render();
+  if (chip) setFilter(chip.dataset.filter);
 });
 
-/* ===== Детальный экран выдачи ===================================== */
+document.getElementById("refreshBtn").addEventListener("click", async (e)=>{
+  const b = e.currentTarget;
+  b.classList.add("spin"); haptic("light");
+  await loadRecords({ soft:true });
+  setTimeout(()=>b.classList.remove("spin"), 500);
+});
+
+/* ===== Степперы количества ===== */
+function bindStepper(wrapId, opts){
+  opts = opts || {};
+  const wrap = document.getElementById(wrapId);
+  const input = wrap.querySelector("input");
+  const getMin = ()=> opts.min != null ? opts.min : 1;
+  const getMax = ()=> opts.max ? opts.max() : 999;
+
+  function clampValue(){
+    let v = parseInt(input.value, 10);
+    if (isNaN(v)) v = getMin();
+    v = Math.max(getMin(), Math.min(getMax(), v));
+    input.value = v;
+    refreshButtons();
+  }
+  function refreshButtons(){
+    const v = parseInt(input.value, 10) || getMin();
+    wrap.querySelector('[data-act="dec"]').disabled = v <= getMin();
+    wrap.querySelector('[data-act="inc"]').disabled = v >= getMax();
+  }
+  function bump(dir){
+    const v = (parseInt(input.value, 10) || getMin()) + dir;
+    input.value = Math.max(getMin(), Math.min(getMax(), v));
+    refreshButtons();
+    haptic("light");
+  }
+
+  wrap.querySelectorAll(".stepper-btn").forEach(btn=>{
+    const dir = btn.dataset.act === "inc" ? 1 : -1;
+    let holdT, repT;
+    const start = (e)=>{
+      e.preventDefault();
+      bump(dir);
+      holdT = setTimeout(()=>{ repT = setInterval(()=>bump(dir), 90); }, 420);
+    };
+    const stop = ()=>{ clearTimeout(holdT); clearInterval(repT); };
+    btn.addEventListener("pointerdown", start);
+    btn.addEventListener("pointerup", stop);
+    btn.addEventListener("pointerleave", stop);
+    btn.addEventListener("pointercancel", stop);
+  });
+  input.addEventListener("change", clampValue);
+  input.addEventListener("blur", clampValue);
+
+  return { refresh: refreshButtons, clamp: clampValue, input };
+}
+
+/* ===== Детали ===== */
 const detailSheet = document.getElementById("detailSheet");
 const detailOverlay = document.getElementById("detailOverlay");
 const detailConfirmBtn = document.getElementById("detailConfirmBtn");
 
 document.getElementById("list").addEventListener("click", (e)=>{
-  if (e.target.closest("button")) return; // клики по кнопкам карточки сюда не долетают
+  if (e.target.closest("button")) return;
   const card = e.target.closest(".card");
   if (!card) return;
   openDetail(Number(card.dataset.id));
@@ -631,8 +865,8 @@ function openDetail(id){
     <div class="detail-row"><span>Инструмент</span><b>${escapeHtml(r.item)}</b></div>
     <div class="detail-row"><span>Кому</span><b>${escapeHtml(r.who)}</b></div>
     <div class="detail-row"><span>Кто выдал</span><b>${escapeHtml(r.by || "—")}</b></div>
-    <div class="detail-row"><span>Дата выдачи</span><b>${fmt(r.issued)}</b></div>
-    <div class="detail-row"><span>Напомнить до</span><b>${fmt(r.confirm)}</b></div>
+    <div class="detail-row"><span>Дата выдачи</span><b>${fmt(r.issued)} · ${relDays(r.issued)}</b></div>
+    <div class="detail-row"><span>Напомнить до</span><b>${fmt(r.confirm)}${r.returned ? "" : " · " + (isOverdue(r) ? "просрочено" : relDays(r.confirm))}</b></div>
     <div class="detail-row"><span>Последний контакт</span><b>${contactInfo}</b></div>
     ${(r.qty || 1) > 1 ? `<div class="detail-row"><span>Количество</span><b>${(r.returnedQty||0)} возвращено из ${r.qty}</b></div>` : ""}
     ${r.comment ? `<div class="detail-row"><span>Комментарий</span><b>${escapeHtml(r.comment)}</b></div>` : ""}
@@ -644,124 +878,165 @@ function openDetail(id){
   } else {
     detailConfirmBtn.classList.remove("hidden");
     detailConfirmBtn.disabled = false;
-    detailConfirmBtn.textContent = "Ещё нужен";
     detailConfirmBtn.onclick = () => handleConfirm(id);
   }
 
   detailSheet.classList.add("open");
   detailOverlay.classList.add("open");
-  if (tg && tg.BackButton) { tg.BackButton.show(); tg.BackButton.onClick(closeDetailSheet); }
+  pushSheet(closeDetailSheet);
   haptic("light");
 }
-
 function closeDetailSheet(){
   detailSheet.classList.remove("open");
   detailOverlay.classList.remove("open");
-  if (tg && tg.BackButton) tg.BackButton.hide();
+  popSheet();
 }
-
 document.getElementById("closeDetailBtn").addEventListener("click", closeDetailSheet);
 detailOverlay.addEventListener("click", closeDetailSheet);
 
-/* ===== Возврат с указанием количества ============================= */
+/* ===== Возврат с количеством ===== */
 const returnSheet = document.getElementById("returnSheet");
 const returnOverlay = document.getElementById("returnOverlay");
 let returnTargetId = null;
+let returnMax = 1;
+
+const returnStepper = bindStepper("returnStepper", { min: 1, max: ()=>returnMax });
 
 function openReturnSheet(id, remaining){
   returnTargetId = id;
-  document.getElementById("f_returnQty").value = remaining;
-  document.getElementById("returnHint").textContent = `Осталось не возвращено: ${remaining}`;
+  returnMax = remaining;
+  returnStepper.input.value = remaining;
+  returnStepper.refresh();
+  document.getElementById("returnHint").textContent = `Не возвращено: ${remaining} шт`;
   returnSheet.classList.add("open");
   returnOverlay.classList.add("open");
-  if (tg && tg.BackButton) { tg.BackButton.show(); tg.BackButton.onClick(closeReturnSheet); }
+  pushSheet(closeReturnSheet);
   haptic("light");
 }
 function closeReturnSheet(){
   returnSheet.classList.remove("open");
   returnOverlay.classList.remove("open");
-  if (tg && tg.BackButton) tg.BackButton.hide();
+  popSheet();
 }
 document.getElementById("closeReturnBtn").addEventListener("click", closeReturnSheet);
 returnOverlay.addEventListener("click", closeReturnSheet);
+document.getElementById("returnAllBtn").addEventListener("click", ()=>{
+  returnStepper.input.value = returnMax;
+  returnStepper.refresh();
+  haptic("light");
+});
 document.getElementById("confirmReturnBtn").addEventListener("click", async ()=>{
-  const qty = parseInt(document.getElementById("f_returnQty").value, 10);
+  returnStepper.clamp();
+  const qty = parseInt(returnStepper.input.value, 10);
   if (!qty || qty < 1){ haptic("error"); return; }
   const id = returnTargetId;
   closeReturnSheet();
   await doReturn(id, qty);
 });
 
+/* ===== «Ещё нужен» ===== */
 async function handleConfirm(id){
   const rec = records.find(r=>r.id===id);
   if (!rec) return;
-  const ok = await confirmAsync("Связались, инструмент пока нужен — продлить срок?");
+  const ok = await confirmAsync("Связались, инструмент пока нужен — продлить срок на 3 месяца?");
   if (!ok) return;
 
   const confirmedAt = todayStr();
   const confirmedBy = currentUserName();
   const newConfirm = addMonths(todayStr(), 3);
-
   detailConfirmBtn.disabled = true;
 
   if (BACKEND_READY){
     try {
       const res = await apiConfirm(id, confirmedAt, confirmedBy, newConfirm);
       if (res.error){ haptic("error"); detailConfirmBtn.disabled = false; return; }
-      await loadRecords();
     } catch(e){ haptic("error"); detailConfirmBtn.disabled = false; return; }
-  } else {
-    rec.confirmedAt = confirmedAt;
-    rec.confirmedBy = confirmedBy;
-    rec.confirm = newConfirm;
   }
+  rec.confirmedAt = confirmedAt;
+  rec.confirmedBy = confirmedBy;
+  rec.confirm = newConfirm;
 
   haptic("success");
   closeDetailSheet();
   render();
+  if (BACKEND_READY) loadRecords({ soft:true });
 }
 
+/* ===== Новая выдача ===== */
 const sheet = document.getElementById("sheet");
 const overlay = document.getElementById("overlay");
+const fIssued = document.getElementById("f_issued");
+const fConfirm = document.getElementById("f_confirm");
+let confirmTouched = false;
+
+const qtyStepper = bindStepper("qtyStepper", { min: 1, max: ()=>999 });
+qtyStepper.refresh();
+
+function setConfirmMonths(m){
+  fConfirm.value = addMonths(fIssued.value || todayStr(), m);
+  confirmTouched = true;
+  syncRemindChips();
+}
+function syncRemindChips(){
+  const base = fIssued.value || todayStr();
+  document.querySelectorAll("#remindChips .mini-chip").forEach(ch=>{
+    ch.classList.toggle("on", fConfirm.value === addMonths(base, Number(ch.dataset.m)));
+  });
+}
+document.querySelectorAll("#remindChips .mini-chip").forEach(ch=>{
+  ch.addEventListener("click", ()=>{ setConfirmMonths(Number(ch.dataset.m)); haptic("light"); });
+});
+fConfirm.addEventListener("input", ()=>{ confirmTouched = true; syncRemindChips(); });
+fIssued.addEventListener("change", ()=>{
+  if (!confirmTouched) fConfirm.value = addMonths(fIssued.value, 3);
+  validateIssued();
+  syncRemindChips();
+});
+function validateIssued(){
+  const hint = document.getElementById("issuedHint");
+  const future = fIssued.value && fIssued.value > todayStr();
+  if (future && !hint){
+    const el = document.createElement("div");
+    el.className = "field-hint warn"; el.id = "issuedHint";
+    el.textContent = "Дата выдачи в будущем — так и задумано?";
+    fIssued.parentElement.appendChild(el);
+  } else if (!future && hint){ hint.remove(); }
+}
 
 function openSheet(){
-  document.getElementById("f_issued").value = todayStr();
-  document.getElementById("f_confirm").value = addMonths(todayStr(), 3);
+  fIssued.value = todayStr();
+  fConfirm.value = addMonths(todayStr(), 3);
+  confirmTouched = false;
   document.getElementById("f_item").value = "";
   document.getElementById("f_who").value = "";
-  document.getElementById("f_qty").value = "";
+  document.getElementById("f_qty").value = "1";
   document.getElementById("f_comment").value = "";
+  const hint = document.getElementById("issuedHint"); if (hint) hint.remove();
+  syncRemindChips();
+  qtyStepper.refresh();
   sheet.classList.add("open");
   overlay.classList.add("open");
-  if (tg && tg.BackButton) { tg.BackButton.show(); tg.BackButton.onClick(closeSheet); }
+  pushSheet(closeSheet);
   haptic("light");
 }
 function closeSheet(){
   sheet.classList.remove("open");
   overlay.classList.remove("open");
-  if (tg && tg.BackButton) { tg.BackButton.hide(); }
+  popSheet();
 }
-
 document.getElementById("openAddBtn").addEventListener("click", openSheet);
 document.getElementById("closeSheetBtn").addEventListener("click", closeSheet);
 overlay.addEventListener("click", closeSheet);
 
-document.getElementById("f_issued").addEventListener("change", (e)=>{
-  document.getElementById("f_confirm").value = addMonths(e.target.value, 3);
-});
-
 document.getElementById("saveBtn").addEventListener("click", async ()=>{
   const item = document.getElementById("f_item").value.trim();
   const who = document.getElementById("f_who").value.trim();
-  const issued = document.getElementById("f_issued").value;
-  const confirm_ = document.getElementById("f_confirm").value;
-  const qty = parseInt(document.getElementById("f_qty").value, 10) || 1;
+  const issued = fIssued.value;
+  const confirm_ = fConfirm.value;
+  const qty = Math.max(1, parseInt(document.getElementById("f_qty").value, 10) || 1);
   const comment = document.getElementById("f_comment").value.trim();
 
-  if (!item || !who || !issued){
-    haptic("error");
-    return;
-  }
+  if (!item || !who || !issued){ haptic("error"); return; }
 
   const saveBtn = document.getElementById("saveBtn");
   saveBtn.disabled = true;
@@ -772,23 +1047,20 @@ document.getElementById("saveBtn").addEventListener("click", async ()=>{
       if (res.error){ haptic("error"); saveBtn.disabled = false; return; }
     } catch(e){ haptic("error"); saveBtn.disabled = false; return; }
     closeSheet();
-    currentFilter = "open";
-    document.querySelectorAll("#filterGroup .chip").forEach(c=>c.classList.remove("active"));
-    document.querySelector('.chip[data-filter="open"]').classList.add("active");
+    setFilter("open");
     haptic("success");
-    await loadRecords();
+    await loadRecords({ soft:true });
   } else {
-    records.push({ id: nextId++, item, who, issued, confirm: confirm_, returned: null, by: currentUserName(), confirmedAt: null, confirmedBy: null, qty, returnedQty: 0, comment });
+    records.push(normalizeRecord({ id: nextId++, item, who, issued, confirm: confirm_, returned: null, by: currentUserName(), confirmedAt: null, confirmedBy: null, qty, returnedQty: 0, comment }));
     closeSheet();
-    currentFilter = "open";
-    document.querySelectorAll("#filterGroup .chip").forEach(c=>c.classList.remove("active"));
-    document.querySelector('.chip[data-filter="open"]').classList.add("active");
+    setFilter("open");
     haptic("success");
     render();
   }
   saveBtn.disabled = false;
 });
 
+/* ===== Старт ===== */
 (function start(){
   initTelegram();
   if (!BACKEND_READY) {
