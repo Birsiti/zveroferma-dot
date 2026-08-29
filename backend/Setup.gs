@@ -104,6 +104,17 @@ function reinstallToolTrigger(){
   ScriptApp.newTrigger('Tool_sendReminders').timeBased().everyDays(1).atHour(8).create();
 }
 
+/** Вернуть кнопку меню бота к списку команд (если Menu Button в BotFather
+    перекрыл команды веб-аппом). Запусти вручную один раз. */
+function resetBotMenuToCommands(){
+  if (!CFG.botToken){ Logger.log('BOT_TOKEN не задан'); return; }
+  var res = UrlFetchApp.fetch('https://api.telegram.org/bot' + CFG.botToken + '/setChatMenuButton', {
+    method: 'post', contentType: 'application/json',
+    payload: JSON.stringify({ menu_button: { type: 'commands' } }), muteHttpExceptions: true
+  });
+  Logger.log(res.getContentText());
+}
+
 /* ---------- удаление строки инструмента (для ошибочных / тестовых записей) ---------- */
 
 /** Удаляет строку из «Инструмент» по id + связанные строки из «Журнал». */
