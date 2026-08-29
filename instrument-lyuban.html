@@ -1,7 +1,8 @@
-<!-- v5 · 29.08.2026 · редизайн: степперы количества (− / +), прогресс частичного возврата,
-     относительные даты, скелет-загрузка, мягкое обновление без спиннера,
-     единый обработчик BackButton, защита от null в сортировке/поиске,
-     ручная правка даты напоминания больше не затирается -->
+<!-- v6 · 29.08.2026 · вместо SVG-иконок — эмодзи/типографика (− + ✕ 🔧 🔍 🧰);
+     нижние чипы-фильтры убраны, фильтр переключается кликом по верхним карточкам
+     (на руках / просрочено / возвращено); "на руках" = число наименований, а не штук;
+     степперы количества, прогресс частичного возврата, относительные даты,
+     скелет-загрузка, мягкое обновление, единый BackButton, reqId + initData -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -59,20 +60,20 @@ svg{display:block; flex:none;}
 /* ===== Шапка ===== */
 .topbar{ display:flex; align-items:center; gap:12px; padding:14px 16px 6px; }
 .topbar .glyph{
-  width:38px; height:38px; border-radius:11px; flex:none;
-  background:var(--accent-soft); color:var(--accent);
+  width:38px; height:38px; border-radius:11px; flex:none; font-size:20px; line-height:1;
+  background:var(--accent-soft);
   display:flex; align-items:center; justify-content:center;
 }
 .topbar .tt{ flex:1; min-width:0; }
 .topbar h1{ font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:18px; margin:0; }
 .topbar p{ margin:2px 0 0; font-size:12.5px; color:var(--ink-soft); }
 .icon-btn{
-  width:38px; height:38px; border-radius:50%; flex:none;
+  width:38px; height:38px; border-radius:50%; flex:none; font-size:16px; line-height:1;
   background:var(--surface-2); border:1px solid var(--line); color:var(--ink-soft);
   display:flex; align-items:center; justify-content:center;
 }
 .icon-btn:active{ background:var(--surface-3); }
-.icon-btn.spin svg{ animation:spin .7s linear infinite; }
+.icon-btn.spin{ animation:spin .7s linear infinite; }
 @keyframes spin{ to{ transform:rotate(360deg); } }
 
 .demo-banner{
@@ -80,40 +81,32 @@ svg{display:block; flex:none;}
   background:var(--accent-soft); color:var(--accent-dark); font-size:12px; font-weight:600;
 }
 
-/* ===== Сводка ===== */
-.summary{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; padding:10px 16px; }
+/* ===== Сводка = переключатель фильтра ===== */
+.summary{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; padding:10px 16px 14px; }
 .sum-card{
+  font:inherit; -webkit-appearance:none; appearance:none;
   background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-sm);
-  padding:11px 8px 10px; text-align:center; box-shadow:var(--shadow);
-  position:relative; overflow:hidden;
+  padding:12px 6px 10px; text-align:center; box-shadow:var(--shadow); cursor:pointer;
+  transition:border-color .15s, background .15s;
 }
-.sum-card .v{ font-family:'JetBrains Mono',monospace; font-weight:700; font-size:19px; line-height:1.1; }
-.sum-card .l{ font-size:10px; color:var(--ink-faint); margin-top:3px; letter-spacing:.01em; }
-.sum-card.warn::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--danger); }
-.sum-card.warn .v{ color:var(--danger); }
-.sum-card.tap:active{ background:var(--surface-2); }
+.sum-card:active{ background:var(--surface-2); }
+.sum-card .v{ font-family:'JetBrains Mono',monospace; font-weight:700; font-size:21px; line-height:1.1; color:var(--ink); }
+.sum-card .l{ font-size:10.5px; color:var(--ink-faint); margin-top:4px; letter-spacing:.01em; }
+.sum-card.sel{ border-color:var(--accent); background:var(--accent-soft); }
+.sum-card.sel .l{ color:var(--accent-dark); }
+.sum-card.danger .v{ color:var(--danger); }
+.sum-card.danger.sel{ border-color:var(--danger); background:var(--danger-soft); }
+.sum-card.danger.sel .l{ color:var(--danger); }
 
-/* ===== Поиск + фильтры ===== */
-.search-wrap{ position:relative; padding:6px 16px 12px; }
-.search-wrap .si{ position:absolute; left:28px; top:50%; transform:translateY(-50%); color:var(--ink-faint); }
+/* ===== Поиск ===== */
+.search-wrap{ position:relative; padding:0 16px 12px; }
+.search-wrap .si{ position:absolute; left:28px; top:22px; transform:translateY(-50%); font-size:14px; opacity:.6; pointer-events:none; }
 .search-wrap input{
   width:100%; min-height:44px; background:var(--surface-2); border:1px solid var(--line);
   border-radius:999px; padding:0 16px 0 40px; color:var(--ink); font-size:15px; font-family:'Inter',sans-serif;
 }
 .search-wrap input::placeholder{ color:var(--ink-faint); }
 .search-wrap input:focus{ outline:none; border-color:var(--accent); }
-
-.chip-group{ display:flex; gap:8px; padding:0 16px 14px; }
-.chip{
-  flex:1; display:flex; align-items:center; justify-content:center; gap:6px;
-  min-height:40px; padding:0 10px; border-radius:999px;
-  background:var(--surface-2); border:1px solid var(--line);
-  color:var(--ink-soft); font-size:13px; font-weight:600; cursor:pointer;
-}
-.chip input{ display:none; }
-.chip .cnt{ font-family:'JetBrains Mono',monospace; font-size:11px; opacity:.7; }
-.chip.active{ background:var(--accent); border-color:var(--accent); color:#fff; box-shadow:0 4px 12px -4px var(--accent-soft); }
-.chip.active .cnt{ opacity:.85; }
 
 /* ===== Список ===== */
 .list{ padding:0 16px; display:flex; flex-direction:column; gap:10px;
@@ -166,7 +159,7 @@ svg{display:block; flex:none;}
 
 /* ===== Пустые состояния / скелет ===== */
 .empty{ text-align:center; color:var(--ink-faint); font-size:13px; padding:48px 20px; }
-.empty .ic{ margin:0 auto 10px; color:var(--ink-faint); }
+.empty .ic{ margin:0 auto 10px; font-size:30px; line-height:1; }
 .empty .retry{
   margin-top:14px; display:inline-block; padding:9px 18px; border-radius:999px;
   background:var(--surface-2); border:1px solid var(--line); color:var(--ink); font-size:12.5px; font-weight:600;
@@ -212,7 +205,8 @@ svg{display:block; flex:none;}
 .sheet-head h2{ font-family:'Chakra Petch',sans-serif; font-size:17px; margin:0; }
 .close-btn{
   width:32px; height:32px; border-radius:50%; border:none; background:var(--surface-2);
-  color:var(--ink-soft); display:flex; align-items:center; justify-content:center;
+  color:var(--ink-soft); font-size:15px; line-height:1;
+  display:flex; align-items:center; justify-content:center;
 }
 
 .field{ margin-bottom:14px; }
@@ -237,6 +231,7 @@ svg{display:block; flex:none;}
 }
 .stepper-btn{
   width:52px; flex:none; border:none; background:transparent; color:var(--ink);
+  font-family:'Inter',sans-serif; font-size:24px; font-weight:500; line-height:1;
   display:flex; align-items:center; justify-content:center;
 }
 .stepper-btn:active{ background:var(--surface-3); }
@@ -277,26 +272,14 @@ svg{display:block; flex:none;}
 </head>
 <body>
 
-<!-- Иконки (inline SVG, stroke 1.75, currentColor) -->
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
-  <g id="i-wrench"><path d="M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.3 2.3-2.7-.7-.7-2.7 2.4-2.2Z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></g>
-  <g id="i-search"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></g>
-  <g id="i-refresh"><path d="M20 11a8 8 0 1 0-.8 3.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><path d="M20 4v6h-6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></g>
-  <g id="i-plus"><path d="M12 6v12M6 12h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></g>
-  <g id="i-minus"><path d="M6 12h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></g>
-  <g id="i-check"><path d="m5 12 5 5L20 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
-  <g id="i-box"><path d="M3 8 12 3l9 5v8l-9 5-9-5V8Z M3 8l9 5 9-5 M12 13v10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></g>
-  <g id="i-clock"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M12 8v4l3 2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></g>
-</defs></svg>
-
 <div id="app">
   <div class="topbar">
-    <div class="glyph"><svg width="22" height="22" viewBox="0 0 24 24"><use href="#i-wrench"/></svg></div>
+    <div class="glyph">🔧</div>
     <div class="tt">
       <h1>Инструмент</h1>
       <p>Кто взял, что взял, когда вернуть</p>
     </div>
-    <button class="icon-btn" id="refreshBtn" aria-label="Обновить"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#i-refresh"/></svg></button>
+    <button class="icon-btn" id="refreshBtn" aria-label="Обновить">🔄</button>
   </div>
 
   <div class="demo-banner hidden" id="demoBanner">Демо-режим: бэкенд ещё не подключён, изменения не сохраняются</div>
@@ -304,20 +287,14 @@ svg{display:block; flex:none;}
   <div class="summary" id="summary"></div>
 
   <div class="search-wrap">
-    <span class="si"><svg width="17" height="17" viewBox="0 0 24 24"><use href="#i-search"/></svg></span>
+    <span class="si">🔍</span>
     <input type="text" id="search" placeholder="Инструмент или имя..." autocomplete="off">
-  </div>
-
-  <div class="chip-group" id="filterGroup">
-    <label class="chip active" data-filter="open"><input type="radio" name="filter" checked>Не возвращено <span class="cnt" data-cnt="open"></span></label>
-    <label class="chip" data-filter="overdue"><input type="radio" name="filter">Просрочено <span class="cnt" data-cnt="overdue"></span></label>
-    <label class="chip" data-filter="all"><input type="radio" name="filter">Все <span class="cnt" data-cnt="all"></span></label>
   </div>
 
   <div class="list" id="list"></div>
 
   <div class="submit-bar">
-    <button class="btn-main" id="openAddBtn"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#i-plus"/></svg> Записать выдачу</button>
+    <button class="btn-main" id="openAddBtn">+&nbsp; Записать выдачу</button>
   </div>
 </div>
 
@@ -327,7 +304,7 @@ svg{display:block; flex:none;}
   <div class="grip"></div>
   <div class="sheet-head">
     <h2>Новая выдача</h2>
-    <button class="close-btn" id="closeSheetBtn" aria-label="Закрыть"><svg width="15" height="15" viewBox="0 0 24 24"><path d="m5 5 14 14M19 5 5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    <button class="close-btn" id="closeSheetBtn" aria-label="Закрыть">✕</button>
   </div>
 
   <div class="field">
@@ -345,9 +322,9 @@ svg{display:block; flex:none;}
   <div class="field">
     <label>Количество</label>
     <div class="stepper" id="qtyStepper">
-      <button type="button" class="stepper-btn" data-act="dec" aria-label="Меньше"><svg width="20" height="20" viewBox="0 0 24 24"><use href="#i-minus"/></svg></button>
+      <button type="button" class="stepper-btn" data-act="dec" aria-label="Меньше">−</button>
       <input type="number" inputmode="numeric" id="f_qty" value="1" min="1" max="999">
-      <button type="button" class="stepper-btn" data-act="inc" aria-label="Больше"><svg width="20" height="20" viewBox="0 0 24 24"><use href="#i-plus"/></svg></button>
+      <button type="button" class="stepper-btn" data-act="inc" aria-label="Больше">+</button>
     </div>
   </div>
 
@@ -372,7 +349,7 @@ svg{display:block; flex:none;}
     <input type="text" id="f_comment" placeholder="Необязательно" autocomplete="off">
   </div>
 
-  <button class="btn-main" id="saveBtn"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#i-check"/></svg> Сохранить</button>
+  <button class="btn-main" id="saveBtn">Сохранить</button>
 </div>
 
 <!-- ===== Возврат ===== -->
@@ -381,21 +358,21 @@ svg{display:block; flex:none;}
   <div class="grip"></div>
   <div class="sheet-head">
     <h2>Отметить возврат</h2>
-    <button class="close-btn" id="closeReturnBtn" aria-label="Закрыть"><svg width="15" height="15" viewBox="0 0 24 24"><path d="m5 5 14 14M19 5 5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    <button class="close-btn" id="closeReturnBtn" aria-label="Закрыть">✕</button>
   </div>
   <div class="field">
     <label>Сколько возвращают</label>
     <div class="stepper" id="returnStepper">
-      <button type="button" class="stepper-btn" data-act="dec" aria-label="Меньше"><svg width="20" height="20" viewBox="0 0 24 24"><use href="#i-minus"/></svg></button>
+      <button type="button" class="stepper-btn" data-act="dec" aria-label="Меньше">−</button>
       <input type="number" inputmode="numeric" id="f_returnQty" min="1">
-      <button type="button" class="stepper-btn" data-act="inc" aria-label="Больше"><svg width="20" height="20" viewBox="0 0 24 24"><use href="#i-plus"/></svg></button>
+      <button type="button" class="stepper-btn" data-act="inc" aria-label="Больше">+</button>
     </div>
     <div class="mini-chips">
       <button type="button" class="mini-chip" id="returnAllBtn">Вернуть всё</button>
     </div>
     <div class="field-hint" id="returnHint"></div>
   </div>
-  <button class="btn-main" id="confirmReturnBtn"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#i-check"/></svg> Подтвердить возврат</button>
+  <button class="btn-main" id="confirmReturnBtn">Подтвердить возврат</button>
 </div>
 
 <!-- ===== Детали ===== -->
@@ -404,10 +381,10 @@ svg{display:block; flex:none;}
   <div class="grip"></div>
   <div class="sheet-head">
     <h2>Детали выдачи</h2>
-    <button class="close-btn" id="closeDetailBtn" aria-label="Закрыть"><svg width="15" height="15" viewBox="0 0 24 24"><path d="m5 5 14 14M19 5 5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    <button class="close-btn" id="closeDetailBtn" aria-label="Закрыть">✕</button>
   </div>
   <div id="detailBody"></div>
-  <button class="btn-main hidden" id="detailConfirmBtn" style="margin-top:14px;"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#i-clock"/></svg> Ещё нужен</button>
+  <button class="btn-main hidden" id="detailConfirmBtn" style="margin-top:14px;">🔔&nbsp; Ещё нужен</button>
 </div>
 
 <script>
@@ -614,34 +591,26 @@ function renderError(message){
   isLoading = false;
   document.getElementById("summary").innerHTML = "";
   document.getElementById("list").innerHTML =
-    `<div class="empty"><div class="ic"><svg width="30" height="30" viewBox="0 0 24 24"><use href="#i-box"/></svg></div>${escapeHtml(message)}<div><span class="retry" id="retryBtn">Повторить</span></div></div>`;
+    `<div class="empty"><div class="ic">⚠️</div>${escapeHtml(message)}<div><span class="retry" id="retryBtn">Повторить</span></div></div>`;
   const retry = document.getElementById("retryBtn");
   if (retry) retry.addEventListener("click", ()=>loadRecords());
 }
 
 function renderSummary(){
-  const active = records.filter(r=>!r.returned);
-  const unitsOut = active.reduce((s,r)=> s + remainingOf(r), 0);
+  const active = records.filter(r=>!r.returned).length;   // наименований на руках
   const overdue = records.filter(isOverdue).length;
   const returned = records.filter(r=>r.returned).length;
-  document.getElementById("summary").innerHTML = `
-    <div class="sum-card"><div class="v">${unitsOut}</div><div class="l">единиц на руках</div></div>
-    <div class="sum-card ${overdue>0?'warn tap':''}" ${overdue>0?'data-jump="overdue"':''}><div class="v">${overdue}</div><div class="l">просрочено</div></div>
-    <div class="sum-card"><div class="v">${returned}</div><div class="l">возвращено</div></div>
-  `;
-  const jump = document.querySelector('.sum-card[data-jump]');
-  if (jump) jump.addEventListener("click", ()=> setFilter("overdue"));
-}
-
-function updateFilterCounts(){
-  const counts = {
-    open: records.filter(r=>!r.returned).length,
-    overdue: records.filter(isOverdue).length,
-    all: records.length
-  };
-  document.querySelectorAll("#filterGroup .cnt").forEach(el=>{
-    const k = el.dataset.cnt;
-    el.textContent = counts[k] != null ? counts[k] : "";
+  const cards = [
+    { f:"open",     v:active,   l:"на руках" },
+    { f:"overdue",  v:overdue,  l:"просрочено", danger:true },
+    { f:"returned", v:returned, l:"возвращено" }
+  ];
+  document.getElementById("summary").innerHTML = cards.map(c=>`
+    <button class="sum-card ${c.danger?'danger':''} ${currentFilter===c.f?'sel':''}" data-filter="${c.f}">
+      <div class="v">${c.v}</div><div class="l">${c.l}</div>
+    </button>`).join("");
+  document.querySelectorAll("#summary .sum-card").forEach(el=>{
+    el.addEventListener("click", ()=> setFilter(el.dataset.filter));
   });
 }
 
@@ -650,7 +619,6 @@ function render(){
 
   renderSummary();
   updateSuggestions();
-  updateFilterCounts();
 
   const list = document.getElementById("list");
   let items = records.slice();
@@ -659,8 +627,9 @@ function render(){
     const q = searchQuery.toLowerCase();
     items = items.filter(r => r.item.toLowerCase().includes(q) || r.who.toLowerCase().includes(q));
   }
-  if (currentFilter === "open") items = items.filter(r => !r.returned);
-  if (currentFilter === "overdue") items = items.filter(isOverdue);
+  if (currentFilter === "open")     items = items.filter(r => !r.returned);
+  if (currentFilter === "overdue")  items = items.filter(isOverdue);
+  if (currentFilter === "returned") items = items.filter(r => r.returned);
 
   items.sort((a,b)=>{
     const aActive = !a.returned, bActive = !b.returned;
@@ -671,10 +640,10 @@ function render(){
 
   if (items.length === 0){
     const msg = searchQuery ? "Ничего не найдено"
-      : currentFilter === "overdue" ? "Просроченных нет — всё под контролем"
-      : currentFilter === "open" ? "Весь инструмент на месте"
-      : "Записей пока нет";
-    list.innerHTML = `<div class="empty"><div class="ic"><svg width="30" height="30" viewBox="0 0 24 24"><use href="#i-box"/></svg></div>${msg}</div>`;
+      : currentFilter === "overdue" ? "Просроченного нет — всё под контролем"
+      : currentFilter === "returned" ? "Возвращённого пока нет"
+      : "Весь инструмент на месте";
+    list.innerHTML = `<div class="empty"><div class="ic">🧰</div>${msg}</div>`;
     return;
   }
 
@@ -716,7 +685,7 @@ function render(){
         ${qtyBlock}
         ${!r.returned ? `
           <div class="card-actions">
-            <button class="btn-return" data-id="${r.id}"><svg width="15" height="15" viewBox="0 0 24 24"><use href="#i-check"/></svg> Отметить возврат</button>
+            <button class="btn-return" data-id="${r.id}">Отметить возврат</button>
           </div>` : ""}
       </div>
     `;
@@ -774,18 +743,10 @@ document.getElementById("search").addEventListener("input", (e)=>{
 });
 
 function setFilter(f){
+  if (currentFilter !== f) haptic("light");
   currentFilter = f;
-  document.querySelectorAll("#filterGroup .chip").forEach(c=>{
-    const on = c.dataset.filter === f;
-    c.classList.toggle("active", on);
-    const inp = c.querySelector("input"); if (inp) inp.checked = on;
-  });
   render();
 }
-document.getElementById("filterGroup").addEventListener("click", (e)=>{
-  const chip = e.target.closest(".chip");
-  if (chip) setFilter(chip.dataset.filter);
-});
 
 document.getElementById("refreshBtn").addEventListener("click", async (e)=>{
   const b = e.currentTarget;
