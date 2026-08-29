@@ -19,7 +19,7 @@ function setup(){
   sheet_(TOOL_LOG, TOOL_LOG_COLS);
   // Самосбор
   sheet_(SB_SET, SB_SET_COLS);
-  ensureHeaders_(SB_REG, SB_REG_COLS);   // добавит колонку «Статус», если её нет
+  ensureHeaders_(SB_REG, SB_REG_COLS);   // допишет «Статус», «Дата_заезда», «Приглашён»
   ensureHeaders_(SB_WAIT, SB_WAIT_COLS);
   ensureSamosborDefaults_();
   // Триггер напоминаний по инструменту (~8:00 ежедневно)
