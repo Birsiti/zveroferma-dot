@@ -78,7 +78,7 @@ function Samosbor_rows_(){
         telegramId: r['Telegram_ID'] === '' ? '' : String(r['Telegram_ID']),
         people: Number(r['Человек']) || 1,
         status: trim_(r['Статус']).toLowerCase() || SB_ST.POOL,
-        tripDate: trim_(r['Дата_заезда']),
+        tripDate: toIsoDate_(trim_(r['Дата_заезда'])),
         invitedAt: fmtCellTs_(r['Приглашён'])
       };
     });
@@ -243,7 +243,7 @@ function Samosbor_confirmTrip_(body){
     if (String(values[i][0]) === id){
       var rowNum = i + 1;
       var name = values[i][SB_REG_COLS.indexOf('Имя')];
-      var tripDate = trim_(values[i][SB_REG_COLS.indexOf('Дата_заезда')]) || s.date;
+      var tripDate = toIsoDate_(trim_(values[i][SB_REG_COLS.indexOf('Дата_заезда')])) || s.date;
       if (body.coming){
         var people = clampInt_(body.people, 1, 10);
         Samosbor_setFields_(rowNum, { 'Статус':SB_ST.GOING, 'Человек':people, 'Дата_заезда':tripDate });

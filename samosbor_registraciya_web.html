@@ -553,7 +553,8 @@ async function sendConfirm(id, coming, people){
     if (res.success){
       haptic('success');
       if (coming){
-        confirmDone('🫐', 'Записали!', 'Ждём вас ' + (res.date || '') + (res.time ? ', ' + res.time : '') +
+        const when = [fmtDate(res.date), fmtTime(res.time)].filter(Boolean).join(', ');
+        confirmDone('🫐', 'Записали!', 'Ждём вас' + (when ? ' ' + when : '') +
           '. Если планы изменятся — напишите нам.');
       } else {
         confirmDone('👋', 'Хорошо, спросим в следующий раз', 'Вы остаётесь в списке — позовём на следующий заезд.');
