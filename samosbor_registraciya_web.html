@@ -195,9 +195,10 @@
   .state-card h2{font-family:'Playfair Display',Georgia,serif;font-size:23px;font-weight:800;margin:0 0 10px;color:var(--cream);}
   .state-card p{font-size:15px;line-height:1.6;color:var(--ink-soft);margin:0;}
   .state-card .when{
-    font-size:16px;font-weight:700;color:var(--cream);line-height:1.75;
+    font-size:16px;font-weight:700;color:var(--cream);line-height:1.85;
     margin:0 auto 12px;display:inline-block;text-align:left;
   }
+  .state-card .when i{font-style:normal;display:inline-block;width:1.4em;}
   .ticket-id{
     display:inline-block;margin-top:16px;padding:7px 14px;background:rgba(255,255,255,0.1);
     border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cream);
@@ -495,7 +496,7 @@ function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&'
 function whenBlock(date, time){
   const d = fmtDate(date), t = fmtTime(time);
   if (!d && !t) return '';
-  return (d ? `<div>📅&nbsp;&nbsp;${esc(d)}</div>` : '') + (t ? `<div>🕙&nbsp;&nbsp;${esc(t)}</div>` : '');
+  return (d ? `<div><i>📅</i>${esc(d)}</div>` : '') + (t ? `<div><i>🕙</i>${esc(t)}</div>` : '');
 }
 function confirmDone(icon, title, text, whenHtml){
   document.getElementById('confirmCard').classList.add('hidden');
@@ -617,7 +618,7 @@ document.getElementById('regForm').addEventListener('submit', async (e) => {
         const dTxt = document.getElementById('pillDate').textContent;
         const tTxt = document.getElementById('pillTime').textContent;
         const sw = document.getElementById('successWhen');
-        sw.innerHTML = (dTxt ? `<div>📅&nbsp;&nbsp;${esc(dTxt)}</div>` : '') + (tTxt ? `<div>🕙&nbsp;&nbsp;${esc(tTxt)}</div>` : '');
+        sw.innerHTML = (dTxt ? `<div><i>📅</i>${esc(dTxt)}</div>` : '') + (tTxt ? `<div><i>🕙</i>${esc(tTxt)}</div>` : '');
         sw.classList.toggle('hidden', !dTxt && !tTxt);
         document.getElementById('successText').textContent = 'Если планы изменятся — напишите в этот чат.';
         document.getElementById('ticketId').textContent = '№ ' + (result.id || '—');
