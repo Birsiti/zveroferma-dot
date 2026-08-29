@@ -411,9 +411,9 @@ function setFormMode(mode) {
 
   if (mode === 'waitlist') {
     btn.textContent = (sessionOpen && seasonActive) ? 'Встать в лист ожидания' : 'Оставить заявку';
-    if (!seasonActive) noticeText.textContent = '📋 Сезон завершён — оставьте контакт, сообщим о следующем.';
-    else if (!sessionOpen) noticeText.textContent = '📋 Сейчас запись закрыта — оставьте контакт, сообщим о следующем наборе.';
-    else noticeText.textContent = '📋 Мест нет — заполните форму, чтобы встать в лист ожидания. Сообщим первым, если кто-то отменит запись.';
+    if (!seasonActive) noticeText.textContent = 'Сезон завершён — оставьте контакт, сообщим о следующем.';
+    else if (!sessionOpen) noticeText.textContent = 'Сейчас запись закрыта — оставьте контакт, сообщим о следующем наборе.';
+    else noticeText.textContent = 'Мест нет — заполните форму, чтобы встать в лист ожидания. Сообщим первым, если кто-то отменит запись.';
     notice.classList.remove('hidden');
   } else {
     btn.textContent = 'Записаться';
