@@ -1,149 +1,166 @@
+<!-- v2 · 29.08.2026 · бренд Звероферма.BY, Telegram WebApp SDK, единый бэкенд «Ферма»,
+     секция «Записавшиеся» (отметить «пришёл» / отменить), футер TG-Studio -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Самосбор — админка</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Самосбор — управление · Звероферма.BY</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Nunito:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap');
+
   :root{
-    --green:#4C6236;
-    --green-dark:#263420;
-    --cream:#F4EFE1;
-    --sage:#AEC29B;
-    --sage-dim:#8a9a7c;
-    --card-bg:#FFFFFF;
-    --border:#E1DCCF;
-    --text:#2B2620;
-    --accent:#BC7128;
-    --danger:#C0392B;
-    --ok:#4C6236;
+    --bg:#2d5a27;
+    --cream:#F7F3EB;
+    --gold:#C9A84C;
+    --gold-soft:rgba(201,168,76,0.16);
+    --green-light:#7BC67A;
+    --card-bg:rgba(255,255,255,0.055);
+    --card-border:rgba(255,255,255,0.14);
+    --input-bg:rgba(255,255,255,0.08);
+    --input-border:rgba(255,255,255,0.20);
+    --tg:#2AABEE;
+    --tg-dark:#1F93CF;
+    --ink:#F7F3EB;
+    --ink-soft:rgba(247,243,235,0.72);
+    --ink-faint:rgba(247,243,235,0.48);
+    --ok:#7BC67A;
+    --danger:#E8A36B;
+    --safe-top:env(safe-area-inset-top,0px);
+    --safe-bottom:env(safe-area-inset-bottom,0px);
   }
-  *{box-sizing:border-box;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   body{
     margin:0;
     min-height:100vh;
-    background:var(--cream);
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif;
-    color:var(--text);
-    padding:24px 16px 60px;
+    background:
+      radial-gradient(ellipse 700px 460px at 78% 4%, rgba(255,255,255,0.06), transparent 60%),
+      linear-gradient(178deg,#2d5a27 0%, #1c3d18 62%, #14300f 100%);
+    background-attachment:fixed;
+    font-family:'Nunito',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    color:var(--ink);
+    padding:calc(22px + var(--safe-top)) 16px calc(30px + var(--safe-bottom));
   }
   .wrap{max-width:480px;margin:0 auto;}
-  h1{
-    font-size:20px;
-    font-weight:700;
-    margin:0 0 4px;
-    color:var(--green-dark);
-  }
-  .subtitle{font-size:13px;color:var(--sage-dim);margin:0 0 24px;}
+
+  .eyebrow{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;}
+  h1{font-family:'Playfair Display',Georgia,serif;font-size:24px;font-weight:800;margin:0 0 4px;color:var(--cream);}
+  .subtitle{font-size:13px;color:var(--ink-soft);margin:0 0 22px;}
 
   .card{
     background:var(--card-bg);
-    border:1px solid var(--border);
-    border-radius:16px;
-    padding:20px;
-    margin-bottom:16px;
+    border:1px solid var(--card-border);
+    border-radius:18px;
+    padding:18px;
+    margin-bottom:14px;
+    backdrop-filter:blur(6px);
   }
-  .card h2{font-size:14px;font-weight:700;margin:0 0 14px;color:var(--green-dark);text-transform:uppercase;letter-spacing:.03em;}
+  .card h2{
+    font-size:12px;font-weight:700;margin:0 0 14px;color:var(--gold);
+    text-transform:uppercase;letter-spacing:.06em;
+  }
 
   .field{margin-bottom:14px;}
   .field:last-child{margin-bottom:0;}
-  label{display:block;font-size:12px;font-weight:600;color:var(--sage-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:.02em;}
+  label{display:block;font-size:11px;font-weight:700;color:var(--ink-faint);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;}
   input[type=text], input[type=number], input[type=password]{
-    width:100%;
-    padding:11px 12px;
-    border:1.5px solid var(--border);
-    border-radius:10px;
-    font-size:15px;
-    font-family:inherit;
-    color:var(--text);
-    background:#fff;
+    width:100%;padding:12px 13px;
+    border:1.5px solid var(--input-border);border-radius:11px;
+    font-size:15px;font-family:inherit;color:var(--cream);
+    background:var(--input-bg);outline:none;color-scheme:dark;
   }
-  input:focus{outline:none;border-color:var(--green);}
+  input:focus{border-color:var(--gold);}
 
-  .toggle-row{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:12px 0;
-    border-bottom:1px solid var(--border);
-  }
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--card-border);}
   .toggle-row:last-child{border-bottom:none;}
-  .toggle-label{font-size:15px;font-weight:600;}
-  .toggle-hint{font-size:12px;color:var(--sage-dim);margin-top:2px;}
+  .toggle-label{font-size:15px;font-weight:700;color:var(--cream);}
+  .toggle-hint{font-size:12px;color:var(--ink-faint);margin-top:2px;}
 
-  .switch{position:relative;width:46px;height:26px;flex:none;}
+  .switch{position:relative;width:48px;height:28px;flex:none;}
   .switch input{opacity:0;width:0;height:0;}
-  .slider{
-    position:absolute;cursor:pointer;inset:0;
-    background:#ccc;border-radius:26px;transition:.2s;
-  }
-  .slider:before{
-    content:"";position:absolute;height:20px;width:20px;left:3px;top:3px;
-    background:white;border-radius:50%;transition:.2s;
-  }
-  input:checked + .slider{background:var(--green);}
+  .slider{position:absolute;cursor:pointer;inset:0;background:rgba(255,255,255,0.16);border-radius:28px;transition:.2s;}
+  .slider:before{content:"";position:absolute;height:22px;width:22px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;}
+  input:checked + .slider{background:var(--tg);}
   input:checked + .slider:before{transform:translateX(20px);}
 
+  .stepper{display:flex;align-items:center;border:1.5px solid var(--input-border);border-radius:11px;overflow:hidden;background:var(--input-bg);width:fit-content;}
+  .stepper button{width:46px;height:44px;border:none;background:transparent;font-size:22px;font-weight:500;color:var(--cream);}
+  .stepper button:active{background:rgba(255,255,255,0.08);}
+  .stepper .val{width:52px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:var(--cream);border-left:1.5px solid var(--input-border);border-right:1.5px solid var(--input-border);line-height:44px;}
+
   .save-btn{
-    width:100%;
-    padding:15px;
-    background:var(--green-dark);
-    color:var(--cream);
-    border:none;
-    border-radius:12px;
-    font-size:15px;
-    font-weight:700;
-    cursor:pointer;
-    margin-top:8px;
+    width:100%;padding:15px;
+    background:var(--tg);color:#fff;border:none;border-radius:13px;
+    font-size:15px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer;margin-top:6px;
   }
-  .save-btn:active{opacity:.85;}
-  .save-btn:disabled{opacity:.5;cursor:not-allowed;}
+  .save-btn:active{background:var(--tg-dark);}
+  .save-btn:disabled{opacity:.5;}
 
-  .status-msg{
-    text-align:center;
-    font-size:13px;
-    font-weight:600;
-    padding:10px;
-    border-radius:10px;
-    margin-top:12px;
-    display:none;
+  .status-msg{text-align:center;font-size:13px;font-weight:700;padding:10px;border-radius:10px;margin-top:12px;display:none;}
+  .status-msg.ok{display:block;background:var(--gold-soft);color:var(--green-light);}
+  .status-msg.err{display:block;background:rgba(232,163,107,0.16);color:var(--danger);}
+
+  .loading{text-align:center;color:var(--ink-soft);font-size:13px;padding:40px 0;}
+
+  /* Записавшиеся */
+  .reg-summary{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--cream);margin-bottom:12px;}
+  .reg-summary b{color:var(--gold);}
+  .reg-item{
+    display:flex;align-items:flex-start;gap:10px;
+    padding:12px 0;border-bottom:1px solid var(--card-border);
   }
-  .status-msg.ok{display:block;background:#E7F0E1;color:var(--ok);}
-  .status-msg.err{display:block;background:#FBEAE7;color:var(--danger);}
+  .reg-item:last-child{border-bottom:none;}
+  .reg-main{flex:1;min-width:0;}
+  .reg-name{font-size:14.5px;font-weight:700;color:var(--cream);}
+  .reg-name.off{opacity:.45;text-decoration:line-through;}
+  .reg-meta{font-size:12px;color:var(--ink-faint);font-family:'JetBrains Mono',monospace;margin-top:2px;}
+  .reg-badge{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;white-space:nowrap;flex:none;margin-top:2px;}
+  .reg-badge.came{background:rgba(123,198,122,0.18);color:var(--green-light);}
+  .reg-badge.cancelled{background:rgba(232,163,107,0.16);color:var(--danger);}
+  .reg-actions{display:flex;gap:7px;margin-top:8px;}
+  .reg-btn{
+    flex:1;min-height:34px;border:1px solid var(--input-border);background:var(--input-bg);
+    color:var(--cream);border-radius:9px;font-size:12px;font-weight:700;font-family:'Nunito',sans-serif;
+  }
+  .reg-btn:active{background:rgba(255,255,255,0.12);}
+  .reg-empty{color:var(--ink-faint);font-size:13px;text-align:center;padding:18px 0;}
+  .wait-title{font-size:11px;font-weight:700;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;margin:16px 0 6px;}
 
-  .loading{text-align:center;color:var(--sage-dim);font-size:13px;padding:40px 0;}
+  .made-by{display:flex;justify-content:center;margin:22px auto 4px;}
+  .made-by a{display:flex;align-items:center;gap:7px;padding:8px 15px;border-radius:999px;background:var(--tg);color:#fff;font-size:12.5px;font-weight:700;text-decoration:none;}
+  .made-by svg{display:block;flex:none;}
+  .made-by-year{font-family:'JetBrains Mono',monospace;font-weight:600;opacity:.8;}
+
+  .hidden{display:none !important;}
 </style>
 </head>
 <body>
 <div class="wrap">
+  <div class="eyebrow">Звероферма.BY</div>
   <h1>🫐 Самосбор — управление</h1>
-  <p class="subtitle">Меняешь тут — сайт обновится сразу после сохранения</p>
+  <p class="subtitle">Меняешь тут — форма записи обновится сразу после сохранения</p>
 
   <div id="loadingMsg" class="loading">Загружаем текущие настройки…</div>
 
-  <form id="adminForm" style="display:none;">
-
+  <form id="adminForm" class="hidden">
     <div class="card">
       <h2>Статус</h2>
       <div class="toggle-row">
         <div>
           <div class="toggle-label">Сезон активен</div>
-          <div class="toggle-hint">Выключи только в конце лета</div>
+          <div class="toggle-hint">Выключи в конце лета</div>
         </div>
-        <label class="switch">
-          <input type="checkbox" id="seasonActive">
-          <span class="slider"></span>
-        </label>
+        <label class="switch"><input type="checkbox" id="seasonActive"><span class="slider"></span></label>
       </div>
       <div class="toggle-row">
         <div>
           <div class="toggle-label">Приём заявок открыт</div>
           <div class="toggle-hint">Идёт запись на заезд ниже</div>
         </div>
-        <label class="switch">
-          <input type="checkbox" id="sessionOpen">
-          <span class="slider"></span>
-        </label>
+        <label class="switch"><input type="checkbox" id="sessionOpen"><span class="slider"></span></label>
       </div>
     </div>
 
@@ -151,19 +168,23 @@
       <h2>Параметры заезда</h2>
       <div class="field">
         <label for="date">Дата</label>
-        <input type="text" id="date" placeholder="25 июля, сб">
+        <input type="text" id="date" placeholder="25 июля, сб" autocomplete="off">
       </div>
       <div class="field">
         <label for="time">Время</label>
-        <input type="text" id="time" placeholder="с 10:00">
+        <input type="text" id="time" placeholder="с 10:00" autocomplete="off">
       </div>
       <div class="field">
         <label for="price">Цена</label>
-        <input type="text" id="price" placeholder="15 руб/кг">
+        <input type="text" id="price" placeholder="15 руб/кг" autocomplete="off">
       </div>
       <div class="field">
-        <label for="limit">Лимит мест</label>
-        <input type="number" id="limit" min="1" placeholder="10">
+        <label>Лимит мест (заявок на заезд)</label>
+        <div class="stepper" id="limitStepper">
+          <button type="button" data-act="dec" aria-label="Меньше">−</button>
+          <div class="val" id="limitVal">10</div>
+          <button type="button" data-act="inc" aria-label="Больше">+</button>
+        </div>
       </div>
     </div>
 
@@ -171,34 +192,84 @@
       <h2>Пароль</h2>
       <div class="field">
         <label for="password">Пароль администратора</label>
-        <input type="password" id="password" required placeholder="••••••">
+        <input type="password" id="password" placeholder="если задан на сервере" autocomplete="off">
       </div>
     </div>
 
     <button type="submit" class="save-btn" id="saveBtn">Сохранить</button>
     <div class="status-msg" id="statusMsg"></div>
   </form>
+
+  <div class="card hidden" id="regsCard">
+    <h2>Записавшиеся</h2>
+    <div class="reg-summary" id="regSummary"></div>
+    <div id="regList"></div>
+    <div id="waitBlock"></div>
+  </div>
+
+  <div class="made-by">
+    <a href="https://t.me/tg_studio_BY_bot" target="_blank" rel="noopener">
+      <svg width="15" height="15" viewBox="0 0 240 240"><path fill="#fff" d="M100 157l-4 56c6 0 8-3 12-6l27-26 57 42c10 6 18 3 21-9l38-178c4-15-5-21-16-17L14 103c-15 6-15 14-3 18l46 14 106-67c5-3 10-1 6 2z"/></svg>
+      TG-Studio <span class="made-by-year" id="madeByYear">· 2026</span>
+    </a>
+  </div>
 </div>
 
 <script>
+const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+if (tg){
+  tg.ready(); tg.expand();
+  try{ tg.setHeaderColor('#2d5a27'); tg.setBackgroundColor('#14300f'); }catch(e){}
+  if (tg.isVersionAtLeast && tg.isVersionAtLeast('7.7')){ try{ tg.disableVerticalSwipes(); }catch(e){} }
+}
+function haptic(style){
+  if (tg && tg.HapticFeedback){
+    if (['success','error','warning'].includes(style)) tg.HapticFeedback.notificationOccurred(style);
+    else tg.HapticFeedback.impactOccurred(style || 'light');
+  }
+}
+function confirmAsync(message){
+  return new Promise((resolve)=>{
+    if (tg && tg.showConfirm && tg.isVersionAtLeast && tg.isVersionAtLeast('6.2')){
+      try{ tg.showConfirm(message, resolve); return; }catch(e){}
+    }
+    resolve(window.confirm(message));
+  });
+}
+try{ document.getElementById('madeByYear').textContent = '· ' + new Date().getFullYear(); }catch(e){}
+
 const CONFIG = {
-  apiUrl: 'https://script.google.com/macros/s/AKfycbwX1NMQRLnIZwut5M3XBH7h9W-59OiyDzbgT3G9ma_uHug7yZa1IkTVajcaPLTRjUYj/exec'
+  // Единый бэкенд «Ферма» (area=samosbor). Старый: .../AKfycbwX1NMQRLnIZwut5M3XBH7h9W-59OiyDzbgT3G9ma_uHug7yZa1IkTVajcaPLTRjUYj/exec
+  apiUrl: 'https://script.google.com/macros/s/AKfycbzPeY26jMlUlon_DaBEWHWvNZvkH6ID4NUpbakNs6tEuSP0f4qmWLPu96zIbo8h4jRq/exec'
 };
 
-async function apiGet() {
-  const res = await fetch(CONFIG.apiUrl);
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function apiGet(qs){
+  const res = await fetch(CONFIG.apiUrl + (qs || ''));
   return res.json();
 }
-async function apiPost(payload) {
+async function apiPost(payload){
   const res = await fetch(CONFIG.apiUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(Object.assign({ area: 'samosbor' }, payload))
   });
   return res.json();
 }
 
-async function loadCurrent() {
+/* ---- лимит-степпер ---- */
+let limitVal = 10;
+const limitEl = document.getElementById('limitVal');
+document.getElementById('limitStepper').addEventListener('click', (e)=>{
+  const b = e.target.closest('button'); if (!b) return;
+  limitVal = Math.max(1, Math.min(200, limitVal + (b.dataset.act === 'inc' ? 1 : -1)));
+  limitEl.textContent = limitVal;
+  haptic('light');
+});
+
+/* ---- загрузка ---- */
+async function loadCurrent(){
   try {
     const status = await apiGet();
     document.getElementById('seasonActive').checked = !!status.seasonActive;
@@ -206,16 +277,81 @@ async function loadCurrent() {
     document.getElementById('date').value = status.date || '';
     document.getElementById('time').value = status.time || '';
     document.getElementById('price').value = status.price || '';
-    document.getElementById('limit').value = status.limit || 10;
+    limitVal = Number(status.limit) || 10;
+    limitEl.textContent = limitVal;
 
-    document.getElementById('loadingMsg').style.display = 'none';
-    document.getElementById('adminForm').style.display = 'block';
+    document.getElementById('loadingMsg').classList.add('hidden');
+    document.getElementById('adminForm').classList.remove('hidden');
+    document.getElementById('regsCard').classList.remove('hidden');
+    loadRegs();
   } catch (e) {
     document.getElementById('loadingMsg').textContent = 'Не получилось загрузить настройки — обновите страницу';
   }
 }
 loadCurrent();
 
+async function loadRegs(){
+  try {
+    const data = await apiGet('?area=samosbor&action=regs');
+    if (!data.ok) return;
+    renderRegs(data);
+  } catch(e){ /* тихо — список необязателен */ }
+}
+
+function renderRegs(data){
+  document.getElementById('regSummary').innerHTML =
+    `Заявок <b>${data.taken}</b> из ${data.limit} · свободно <b>${data.remaining}</b>`;
+
+  const list = document.getElementById('regList');
+  const regs = (data.regs || []).slice().reverse();
+  if (!regs.length){
+    list.innerHTML = `<div class="reg-empty">Пока никто не записался</div>`;
+  } else {
+    list.innerHTML = regs.map(r => {
+      const cancelled = r.status === 'отменено' || r.status === 'cancelled';
+      const came = r.status === 'пришёл' || r.status === 'came';
+      let badge = '';
+      if (cancelled) badge = `<span class="reg-badge cancelled">отменено</span>`;
+      else if (came) badge = `<span class="reg-badge came">пришёл</span>`;
+      const actions = cancelled ? '' : `
+        <div class="reg-actions">
+          ${came ? '' : `<button class="reg-btn" data-id="${esc(r.id)}" data-st="пришёл">Отметить «пришёл»</button>`}
+          <button class="reg-btn" data-id="${esc(r.id)}" data-st="отменено">Отменить</button>
+        </div>`;
+      return `
+        <div class="reg-item">
+          <div class="reg-main">
+            <div class="reg-name ${cancelled ? 'off' : ''}">${esc(r.name)} · ${r.people} чел.</div>
+            <div class="reg-meta">${esc(r.phone)}${r.ts ? ' · ' + esc(String(r.ts).split(' ')[0]) : ''}</div>
+            ${actions}
+          </div>
+          ${badge}
+        </div>`;
+    }).join('');
+  }
+
+  const wait = data.waitlist || [];
+  document.getElementById('waitBlock').innerHTML = wait.length
+    ? `<div class="wait-title">Лист ожидания (${wait.length})</div>` + wait.map(w =>
+        `<div class="reg-item"><div class="reg-main"><div class="reg-name">${esc(w.name)} · ${w.people} чел.</div><div class="reg-meta">${esc(w.phone)}</div></div></div>`
+      ).join('')
+    : '';
+
+  list.querySelectorAll('.reg-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const st = btn.dataset.st;
+      if (st === 'отменено' && !(await confirmAsync('Отменить запись этого человека?'))) return;
+      btn.disabled = true;
+      try {
+        const res = await apiPost({ action: 'regUpdate', id: btn.dataset.id, status: st });
+        if (res.ok){ haptic('success'); loadRegs(); }
+        else { haptic('error'); btn.disabled = false; }
+      } catch(e){ haptic('error'); btn.disabled = false; }
+    });
+  });
+}
+
+/* ---- сохранение настроек ---- */
 document.getElementById('adminForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn = document.getElementById('saveBtn');
@@ -232,23 +368,26 @@ document.getElementById('adminForm').addEventListener('submit', async (e) => {
     date: document.getElementById('date').value.trim(),
     time: document.getElementById('time').value.trim(),
     price: document.getElementById('price').value.trim(),
-    limit: Number(document.getElementById('limit').value) || 10
+    limit: limitVal
   };
 
   try {
     const result = await apiPost(payload);
     if (result.success) {
-      msg.textContent = '✓ Сохранено — сайт обновлён';
+      msg.textContent = '✓ Сохранено — форма записи обновлена';
       msg.className = 'status-msg ok';
+      haptic('success');
+      loadRegs();
     } else {
       msg.textContent = result.message || 'Не получилось сохранить';
       msg.className = 'status-msg err';
+      haptic('error');
     }
   } catch (err) {
     msg.textContent = 'Ошибка соединения — попробуйте ещё раз';
     msg.className = 'status-msg err';
+    haptic('error');
   }
-
   btn.disabled = false;
   btn.textContent = 'Сохранить';
 });

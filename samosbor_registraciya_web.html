@@ -1,26 +1,35 @@
+<!-- v2 · 29.08.2026 · бренд Звероферма.BY (зелёный/кремовый/золото, Playfair+Nunito),
+     единый бэкенд «Ферма», футер TG-Studio, фикс дублей эмодзи на экранах-состояниях -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Самосбор голубики — Ягодное место</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Самосбор голубики — Звероферма.BY</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Inter:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Nunito:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap');
 
   :root{
-    --green-top:#4C6236;
-    --green-bottom:#263420;
-    --cream:#F4EFE1;
-    --sage:#AEC29B;
-    --sage-dim:#93A582;
+    --bg:#2d5a27;
+    --deep:#0f2012;
+    --cream:#F7F3EB;
+    --gold:#C9A84C;
+    --gold-soft:rgba(201,168,76,0.16);
+    --green-light:#7BC67A;
     --card-bg:rgba(255,255,255,0.055);
     --card-border:rgba(255,255,255,0.14);
     --input-bg:rgba(255,255,255,0.08);
     --input-border:rgba(255,255,255,0.20);
-    --cta-bg:#F4EFE1;
-    --cta-text:#263420;
+    --tg:#2AABEE;
+    --tg-dark:#1F93CF;
+    --ink:#F7F3EB;
+    --ink-soft:rgba(247,243,235,0.72);
+    --ink-faint:rgba(247,243,235,0.48);
     --error:#E8A36B;
+    --safe-bottom:env(safe-area-inset-bottom,0px);
   }
   *{box-sizing:border-box;}
   html,body{height:100%;}
@@ -28,89 +37,74 @@
     margin:0;
     min-height:100vh;
     background:
-      radial-gradient(ellipse 700px 500px at 75% 8%, rgba(255,255,255,0.07), transparent 60%),
-      linear-gradient(180deg, var(--green-top) 0%, var(--green-bottom) 100%);
+      radial-gradient(ellipse 700px 500px at 78% 6%, rgba(255,255,255,0.06), transparent 60%),
+      linear-gradient(178deg, #2d5a27 0%, #1c3d18 62%, #14300f 100%);
     background-attachment:fixed;
-    color:var(--cream);
-    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    color:var(--ink);
+    font-family:'Nunito',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     -webkit-tap-highlight-color:transparent;
   }
-  .wrap{max-width:480px;margin:0 auto;padding:36px 20px 44px;}
+  .wrap{max-width:480px;margin:0 auto;padding:34px 20px 8px;}
 
   .eyebrow{
-    font-size:12px;
-    font-weight:600;
-    letter-spacing:.14em;
+    font-size:11.5px;
+    font-weight:700;
+    letter-spacing:.16em;
     text-transform:uppercase;
-    color:var(--sage);
+    color:var(--gold);
     text-align:center;
     margin-bottom:10px;
   }
-  .hero{text-align:center;padding-bottom:22px;}
-  .basket{font-size:64px;line-height:1;margin:0 auto 10px;text-align:center;}
+  .hero{text-align:center;padding-bottom:20px;}
+  .basket{font-size:60px;line-height:1;margin:0 auto 8px;text-align:center;}
   h1{
     font-family:'Playfair Display',Georgia,serif;
     font-weight:800;
-    font-size:32px;
-    line-height:1.15;
+    font-size:33px;
+    line-height:1.12;
     margin:0 0 12px;
     color:var(--cream);
   }
-  .sub{font-size:15px;line-height:1.55;color:var(--sage);margin:0 auto;max-width:340px;}
+  .sub{font-size:15px;line-height:1.55;color:var(--ink-soft);margin:0 auto;max-width:340px;}
 
-  .info-row{
-    display:flex;
-    justify-content:center;
-    gap:10px;
-    flex-wrap:wrap;
-    margin-top:16px;
-  }
+  .info-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:16px;}
   .info-pill{
-    background:rgba(255,255,255,0.09);
+    background:rgba(255,255,255,0.08);
     border:1px solid var(--card-border);
     border-radius:999px;
-    padding:8px 16px;
+    padding:8px 15px;
     font-size:13px;
-    font-weight:600;
+    font-weight:700;
     color:var(--cream);
-    display:flex;
-    align-items:center;
-    gap:6px;
+    display:flex;align-items:center;gap:6px;
   }
 
   .counter-card{
     background:var(--card-bg);
     border:1px solid var(--card-border);
-    border-radius:22px;
-    padding:18px 20px;
-    margin:20px 0;
-    display:flex;
-    align-items:center;
-    gap:14px;
+    border-radius:20px;
+    padding:16px 18px;
+    margin:18px 0;
+    display:flex;align-items:center;gap:14px;
     backdrop-filter:blur(6px);
   }
-  .counter-jar{width:42px;height:42px;flex:none;}
+  .counter-jar{width:40px;height:40px;flex:none;}
   .counter-text{flex:1;}
-  .counter-title{font-size:12px;color:var(--sage-dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;}
-  .counter-value{font-family:'Playfair Display',Georgia,serif;font-size:20px;font-weight:700;color:var(--cream);}
-  .counter-bar{
-    height:6px;background:rgba(255,255,255,0.12);border-radius:4px;overflow:hidden;margin-top:9px;
-  }
-  .counter-bar-fill{
-    height:100%;background:linear-gradient(90deg,var(--sage),var(--cream));
-    border-radius:4px;transition:width .5s ease;
-  }
+  .counter-title{font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;}
+  .counter-value{font-family:'Playfair Display',Georgia,serif;font-size:19px;font-weight:700;color:var(--cream);}
+  .counter-bar{height:6px;background:rgba(255,255,255,0.12);border-radius:4px;overflow:hidden;margin-top:9px;}
+  .counter-bar-fill{height:100%;background:linear-gradient(90deg,var(--green-light),var(--gold));border-radius:4px;transition:width .5s ease;}
 
   .card{
     background:var(--card-bg);
     border:1px solid var(--card-border);
-    border-radius:24px;
-    padding:24px 22px;
+    border-radius:22px;
+    padding:22px 20px;
     backdrop-filter:blur(6px);
   }
 
   form{display:flex;flex-direction:column;gap:15px;}
-  label{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--sage-dim);margin-bottom:7px;display:block;}
+  label{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:7px;display:block;}
   input, select{
     width:100%;
     padding:13px 14px;
@@ -124,64 +118,59 @@
     transition:border-color .15s;
     color-scheme:dark;
   }
-  input::placeholder{color:rgba(244,239,225,0.42);}
-  input:focus, select:focus{border-color:var(--cream);}
+  input::placeholder{color:rgba(247,243,235,0.4);}
+  input:focus, select:focus{border-color:var(--gold);}
   .field{display:flex;flex-direction:column;}
 
   .phone-row{display:flex;gap:0;}
   .phone-prefix{
     display:flex;align-items:center;justify-content:center;
-    padding:0 10px;
+    padding:0 11px;
     border:1.5px solid var(--input-border);
     border-right:none;
     border-radius:12px 0 0 12px;
     background:rgba(255,255,255,0.12);
     color:var(--cream);
-    font-size:16px;
-    font-weight:600;
-    flex:none;
+    font-family:'JetBrains Mono',monospace;
+    font-size:15px;font-weight:600;flex:none;
   }
-  .phone-row input{
-    border-radius:0 12px 12px 0;
-  }
+  .phone-row input{border-radius:0 12px 12px 0;font-family:'JetBrains Mono',monospace;letter-spacing:.02em;}
 
-  .stepper{display:flex;align-items:center;gap:0;border:1.5px solid var(--input-border);border-radius:12px;overflow:hidden;background:var(--input-bg);width:fit-content;}
+  .stepper{display:flex;align-items:center;border:1.5px solid var(--input-border);border-radius:12px;overflow:hidden;background:var(--input-bg);width:fit-content;}
   .stepper button{
-    width:44px;height:44px;border:none;background:transparent;font-size:20px;color:var(--cream);cursor:pointer;
+    width:46px;height:46px;border:none;background:transparent;font-size:22px;font-weight:500;color:var(--cream);cursor:pointer;
   }
   .stepper button:active{background:rgba(255,255,255,0.08);}
-  .stepper .val{width:44px;text-align:center;font-size:16px;font-weight:600;color:var(--cream);}
+  .stepper .val{width:46px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700;color:var(--cream);border-left:1.5px solid var(--input-border);border-right:1.5px solid var(--input-border);line-height:46px;}
 
   .submit-btn{
     margin-top:6px;
-    background:var(--cta-bg);
-    color:var(--cta-text);
+    background:var(--tg);
+    color:#fff;
     border:none;
     border-radius:14px;
     padding:16px;
     font-size:16px;
-    font-weight:700;
+    font-weight:800;
+    font-family:'Nunito',sans-serif;
     cursor:pointer;
-    transition:transform .1s, opacity .15s;
+    transition:transform .1s, opacity .15s, background .15s;
   }
-  .submit-btn:active{transform:scale(0.98);}
-  .submit-btn:hover{opacity:0.92;}
-  .submit-btn:disabled{background:rgba(244,239,225,0.35);cursor:not-allowed;}
+  .submit-btn:active{transform:scale(0.98);background:var(--tg-dark);}
+  .submit-btn:disabled{background:rgba(247,243,235,0.22);color:rgba(247,243,235,0.6);cursor:not-allowed;}
 
-  .hint{font-size:12px;color:var(--sage-dim);text-align:center;margin-top:2px;}
+  .hint{font-size:12px;color:var(--ink-faint);text-align:center;margin-top:2px;}
 
   .notice-box{
-    display:flex;
-    gap:10px;
-    align-items:flex-start;
-    background:rgba(255,255,255,0.09);
-    border:1px solid var(--card-border);
+    display:flex;gap:10px;align-items:flex-start;
+    background:var(--gold-soft);
+    border:1px solid rgba(201,168,76,0.35);
     border-radius:14px;
-    padding:14px 16px;
+    padding:13px 15px;
     margin-bottom:16px;
   }
-  .notice-box .notice-icon{font-size:22px;line-height:1;flex:none;}
-  .notice-box .notice-text{font-size:15px;line-height:1.5;color:var(--cream);}
+  .notice-box .notice-icon{font-size:20px;line-height:1;flex:none;}
+  .notice-box .notice-text{font-size:14.5px;line-height:1.5;color:var(--cream);}
 
   .state-card{
     background:var(--card-bg);
@@ -191,22 +180,30 @@
     text-align:center;
     backdrop-filter:blur(6px);
   }
-  .state-card .icon{font-size:40px;margin-bottom:12px;}
-  .state-card h2{font-family:'Playfair Display',Georgia,serif;font-size:22px;font-weight:800;margin:0 0 8px;color:var(--cream);}
-  .state-card p{font-size:14px;line-height:1.55;color:var(--sage);margin:0;}
+  .state-card .icon{font-size:44px;margin-bottom:12px;}
+  .state-card h2{font-family:'Playfair Display',Georgia,serif;font-size:23px;font-weight:800;margin:0 0 8px;color:var(--cream);}
+  .state-card p{font-size:14px;line-height:1.55;color:var(--ink-soft);margin:0;}
   .ticket-id{
     display:inline-block;margin-top:16px;padding:7px 14px;background:rgba(255,255,255,0.1);
-    border-radius:8px;font-family:'Courier New',monospace;font-size:13px;color:var(--cream);
+    border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cream);
   }
 
+  .made-by{display:flex;justify-content:center;margin:26px auto max(18px,var(--safe-bottom));}
+  .made-by a{
+    display:flex;align-items:center;gap:7px;padding:8px 15px;border-radius:999px;
+    background:var(--tg);color:#fff;font-size:12.5px;font-weight:700;text-decoration:none;
+  }
+  .made-by svg{display:block;flex:none;}
+  .made-by-year{font-family:'JetBrains Mono',monospace;font-weight:600;opacity:.8;}
+
   .hidden{display:none !important;}
-  .error-msg{color:var(--error);font-size:13px;margin-top:-4px;}
+  .error-msg{color:var(--error);font-size:13px;margin-top:-4px;font-weight:600;}
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <div class="hero">
+  <div class="hero" id="hero">
     <div class="basket">🫐</div>
     <div class="eyebrow" id="heroEyebrow">Запись ограничена</div>
     <h1>Самосбор<br>голубики</h1>
@@ -219,9 +216,9 @@
 
   <div class="counter-card hidden" id="counterCard">
     <svg class="counter-jar" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="10" y="8" width="24" height="30" rx="4" stroke="#F4EFE1" stroke-width="2" fill="rgba(255,255,255,0.05)"/>
-      <rect x="14" y="4" width="16" height="6" rx="2" fill="#F4EFE1"/>
-      <rect id="jarFill" x="12" y="26" width="20" height="10" rx="2" fill="#AEC29B" opacity="0.9"/>
+      <rect x="10" y="8" width="24" height="30" rx="4" stroke="#F7F3EB" stroke-width="2" fill="rgba(255,255,255,0.05)"/>
+      <rect x="14" y="4" width="16" height="6" rx="2" fill="#F7F3EB"/>
+      <rect id="jarFill" x="12" y="26" width="20" height="10" rx="2" fill="#7BC67A" opacity="0.9"/>
     </svg>
     <div class="counter-text">
       <div class="counter-title">Свободные места</div>
@@ -230,7 +227,7 @@
     </div>
   </div>
 
-  <div class="card">
+  <div class="card" id="formCard">
     <div class="notice-box hidden" id="waitlistNotice">
       <div class="notice-icon">📋</div>
       <div class="notice-text" id="waitlistNoticeText">Мест нет — заполните форму, чтобы встать в лист ожидания. Сообщим первым, если кто-то отменит запись.</div>
@@ -244,15 +241,15 @@
         <label for="phone">Телефон</label>
         <div class="phone-row">
           <span class="phone-prefix">+375</span>
-          <input type="tel" id="phone" name="reg_phone_field" required autocomplete="off" placeholder="29 777 72 22" inputmode="numeric">
+          <input type="tel" id="phone" name="reg_phone_field" required autocomplete="off" placeholder="29 777 72 22" inputmode="numeric" maxlength="12">
         </div>
       </div>
       <div class="field">
         <label>Количество человек</label>
         <div class="stepper">
-          <button type="button" id="minus">−</button>
+          <button type="button" id="minus" aria-label="Меньше">−</button>
           <div class="val" id="peopleVal">1</div>
-          <button type="button" id="plus">+</button>
+          <button type="button" id="plus" aria-label="Больше">+</button>
         </div>
       </div>
       <div class="error-msg hidden" id="errorMsg"></div>
@@ -283,20 +280,34 @@
     <p id="waitlistCardText">Если кто-то отменит запись — сообщим Вам первым в Telegram.</p>
   </div>
 
+  <div class="made-by">
+    <a href="https://t.me/tg_studio_BY_bot" target="_blank" rel="noopener">
+      <svg width="15" height="15" viewBox="0 0 240 240"><path fill="#fff" d="M100 157l-4 56c6 0 8-3 12-6l27-26 57 42c10 6 18 3 21-9l38-178c4-15-5-21-16-17L14 103c-15 6-15 14-3 18l46 14 106-67c5-3 10-1 6 2z"/></svg>
+      TG-Studio <span class="made-by-year" id="madeByYear">· 2026</span>
+    </a>
+  </div>
+
 </div>
 
 <script>
-const tg=window.Telegram?.WebApp;if(tg){tg.ready();tg.expand();}
-const telegramUser = tg?.initDataUnsafe?.user || null;
+const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+if (tg){
+  tg.ready(); tg.expand();
+  try{ tg.setHeaderColor('#2d5a27'); tg.setBackgroundColor('#14300f'); }catch(e){}
+  if (tg.isVersionAtLeast && tg.isVersionAtLeast('7.7')){ try{ tg.disableVerticalSwipes(); }catch(e){} }
+}
+const telegramUser = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || null;
+try{ document.getElementById('madeByYear').textContent = '· ' + new Date().getFullYear(); }catch(e){}
 
 const CONFIG = {
-  apiUrl: 'https://script.google.com/macros/s/AKfycbwX1NMQRLnIZwut5M3XBH7h9W-59OiyDzbgT3G9ma_uHug7yZa1IkTVajcaPLTRjUYj/exec'
+  // Единый бэкенд «Ферма» (area=samosbor). Старый: .../AKfycbwX1NMQRLnIZwut5M3XBH7h9W-59OiyDzbgT3G9ma_uHug7yZa1IkTVajcaPLTRjUYj/exec
+  apiUrl: 'https://script.google.com/macros/s/AKfycbzPeY26jMlUlon_DaBEWHWvNZvkH6ID4NUpbakNs6tEuSP0f4qmWLPu96zIbo8h4jRq/exec'
 };
 
 let people = 1;
 const peopleVal = document.getElementById('peopleVal');
 document.getElementById('minus').onclick = () => { if(people>1){people--; peopleVal.textContent=people;} };
-document.getElementById('plus').onclick = () => { if(people<5){people++; peopleVal.textContent=people;} };
+document.getElementById('plus').onclick  = () => { if(people<5){people++; peopleVal.textContent=people;} };
 
 const phoneInput = document.getElementById('phone');
 function formatPhone(raw) {
@@ -308,9 +319,7 @@ function formatPhone(raw) {
   if (digits.length > 7) parts.push(digits.slice(7, 9));
   return parts.join(' ');
 }
-phoneInput.addEventListener('input', (e) => {
-  e.target.value = formatPhone(e.target.value);
-});
+phoneInput.addEventListener('input', (e) => { e.target.value = formatPhone(e.target.value); });
 
 async function apiGet() {
   const res = await fetch(CONFIG.apiUrl);
@@ -320,30 +329,39 @@ async function apiPost(payload) {
   const res = await fetch(CONFIG.apiUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(Object.assign({ area: 'samosbor' }, payload))
   });
   return res.json();
 }
 
 // formMode: 'register' — идёт набор, есть места
-//           'waitlist'  — идёт набор, мест нет ЛИБО заезда сейчас нет ЛИБО сезон закончился
+//           'waitlist'  — мест нет / заезда нет / сезон закончился
 let formMode = 'register';
 let sessionOpen = true;
 let seasonActive = true;
 let currentLimit = 10;
 
+/** Показать один экран-состояние, спрятав форму, счётчик и герой (чтобы не дублировать эмодзи). */
+function showStateCard(id) {
+  document.getElementById('formCard').classList.add('hidden');
+  document.getElementById('counterCard').classList.add('hidden');
+  document.getElementById('hero').classList.add('hidden');
+  document.getElementById(id).classList.remove('hidden');
+}
+function backToForm() {
+  ['successCard','duplicateCard','waitlistCard'].forEach(id => document.getElementById(id).classList.add('hidden'));
+  document.getElementById('hero').classList.remove('hidden');
+  document.getElementById('formCard').classList.remove('hidden');
+}
+
 function applyStatus(status) {
   sessionOpen = !!status.open;
-  seasonActive = status.seasonActive !== false; // по умолчанию считаем сезон активным
+  seasonActive = status.seasonActive !== false;
   currentLimit = status.limit || currentLimit;
 
-  if (!seasonActive) {
-    showSeasonOverMode();
-  } else if (!sessionOpen) {
-    showPausedMode();
-  } else {
-    showOpenMode(status);
-  }
+  if (!seasonActive) showSeasonOverMode();
+  else if (!sessionOpen) showPausedMode();
+  else showOpenMode(status);
 
   document.getElementById('submitBtn').disabled = false;
 }
@@ -364,7 +382,6 @@ function showOpenMode(status) {
   document.getElementById('counterBar').style.width = filledPct + '%';
 
   document.getElementById('formHint').textContent = '🔒 Вход на поле — только по регистрации';
-
   setFormMode(status.full ? 'waitlist' : 'register');
 }
 
@@ -394,13 +411,9 @@ function setFormMode(mode) {
 
   if (mode === 'waitlist') {
     btn.textContent = (sessionOpen && seasonActive) ? 'Встать в лист ожидания' : 'Оставить заявку';
-    if (!seasonActive) {
-      noticeText.textContent = '📋 Сезон завершён — оставьте контакт, сообщим о следующем.';
-    } else if (!sessionOpen) {
-      noticeText.textContent = '📋 Сейчас запись закрыта — оставьте контакт, сообщим о следующем наборе.';
-    } else {
-      noticeText.textContent = '📋 Мест нет — заполните форму, чтобы встать в лист ожидания. Сообщим первым, если кто-то отменит запись.';
-    }
+    if (!seasonActive) noticeText.textContent = '📋 Сезон завершён — оставьте контакт, сообщим о следующем.';
+    else if (!sessionOpen) noticeText.textContent = '📋 Сейчас запись закрыта — оставьте контакт, сообщим о следующем наборе.';
+    else noticeText.textContent = '📋 Мест нет — заполните форму, чтобы встать в лист ожидания. Сообщим первым, если кто-то отменит запись.';
     notice.classList.remove('hidden');
   } else {
     btn.textContent = 'Записаться';
@@ -411,9 +424,7 @@ function setFormMode(mode) {
 async function loadStatus() {
   try {
     const status = await apiGet();
-    if (status.error) {
-      throw new Error(status.message || 'backend error');
-    }
+    if (status.error) throw new Error(status.message || status.error || 'backend error');
     applyStatus(status);
   } catch (e) {
     document.getElementById('heroSub').textContent = 'Не получилось загрузить информацию — попробуйте обновить страницу.';
@@ -423,6 +434,8 @@ async function loadStatus() {
 }
 loadStatus();
 
+let lastAttemptedPhone = '';
+
 document.getElementById('regForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const errorEl = document.getElementById('errorMsg');
@@ -430,45 +443,37 @@ document.getElementById('regForm').addEventListener('submit', async (e) => {
   const nameValue = document.getElementById('name').value.trim();
   const phoneDigits = document.getElementById('phone').value.replace(/\D/g, '');
 
-  if (!nameValue) {
-    errorEl.textContent = 'Введите имя';
-    errorEl.classList.remove('hidden');
-    return;
-  }
-  if (phoneDigits.length !== 9) {
-    errorEl.textContent = 'Введите номер телефона полностью';
-    errorEl.classList.remove('hidden');
-    return;
-  }
+  if (!nameValue) { errorEl.textContent = 'Введите имя'; errorEl.classList.remove('hidden'); return; }
+  if (phoneDigits.length !== 9) { errorEl.textContent = 'Введите номер телефона полностью'; errorEl.classList.remove('hidden'); return; }
 
   const btn = document.getElementById('submitBtn');
   const isWaitlist = formMode === 'waitlist';
   btn.disabled = true;
-  btn.textContent = isWaitlist ? 'Записываем…' : 'Записываем…';
+  btn.textContent = 'Записываем…';
 
+  const fullPhone = '375 ' + document.getElementById('phone').value.trim();
   const payload = {
     action: isWaitlist ? 'waitlist' : 'register',
     name: nameValue,
-    phone: '375 ' + document.getElementById('phone').value.trim(),
-    telegramId: telegramUser?.id || '',
+    phone: fullPhone,
+    telegramId: (telegramUser && telegramUser.id) || '',
     people: people
   };
 
   try {
     const result = await apiPost(payload);
     if (result.success) {
-      document.getElementById('regForm').closest('.card').classList.add('hidden');
       if (isWaitlist) {
         const fullyOpen = sessionOpen && seasonActive;
         document.getElementById('waitlistCardTitle').textContent = fullyOpen ? 'Записали в лист ожидания!' : 'Заявку приняли!';
         document.getElementById('waitlistCardText').textContent = fullyOpen
           ? 'Если кто-то отменит запись — сообщим Вам первым в Telegram.'
           : 'Сообщим первыми, когда откроем следующий набор.';
-        document.getElementById('waitlistCard').classList.remove('hidden');
+        showStateCard('waitlistCard');
       } else {
         document.getElementById('successText').textContent = 'Ждём Вас ' + document.getElementById('pillDate').textContent + ' (' + document.getElementById('pillTime').textContent + '). Если что-то изменится — позвоним.';
-        document.getElementById('successCard').classList.remove('hidden');
         document.getElementById('ticketId').textContent = '№ ' + (result.id || '—');
+        showStateCard('successCard');
       }
     } else if (result.full) {
       errorEl.textContent = 'Места как раз закончились — нажмите кнопку ещё раз, чтобы встать в лист ожидания';
@@ -476,11 +481,8 @@ document.getElementById('regForm').addEventListener('submit', async (e) => {
       setFormMode('waitlist');
       btn.disabled = false;
     } else if (result.duplicate) {
-      lastAttemptedPhone = '375 ' + document.getElementById('phone').value.trim();
-      document.getElementById('regForm').closest('.card').classList.add('hidden');
-      document.getElementById('duplicateCard').classList.remove('hidden');
-      btn.disabled = false;
-      setFormMode(formMode);
+      lastAttemptedPhone = fullPhone;
+      showStateCard('duplicateCard');
     } else {
       errorEl.textContent = result.message || 'Не получилось записаться, попробуйте ещё раз';
       errorEl.classList.remove('hidden');
@@ -495,8 +497,6 @@ document.getElementById('regForm').addEventListener('submit', async (e) => {
   }
 });
 
-let lastAttemptedPhone = '';
-
 document.getElementById('cancelRegBtn').addEventListener('click', async () => {
   const cbtn = document.getElementById('cancelRegBtn');
   const cancelErrorEl = document.getElementById('cancelErrorMsg');
@@ -507,12 +507,12 @@ document.getElementById('cancelRegBtn').addEventListener('click', async () => {
   try {
     const result = await apiPost({ action: 'cancel', phone: lastAttemptedPhone });
     if (result.success) {
-      document.getElementById('duplicateCard').classList.add('hidden');
-      document.getElementById('regForm').closest('.card').classList.remove('hidden');
+      backToForm();
       document.getElementById('name').value = '';
       document.getElementById('phone').value = '';
-      people = 1;
-      peopleVal.textContent = '1';
+      people = 1; peopleVal.textContent = '1';
+      const sb = document.getElementById('submitBtn');
+      sb.disabled = false;
       loadStatus();
     } else {
       cancelErrorEl.textContent = result.message || 'Не получилось отменить запись';
@@ -527,9 +527,10 @@ document.getElementById('cancelRegBtn').addEventListener('click', async () => {
 });
 
 document.getElementById('tryAnotherLink').addEventListener('click', () => {
-  document.getElementById('duplicateCard').classList.add('hidden');
-  document.getElementById('regForm').closest('.card').classList.remove('hidden');
+  backToForm();
   document.getElementById('phone').value = '';
+  const sb = document.getElementById('submitBtn');
+  sb.disabled = false;
   document.getElementById('phone').focus();
 });
 </script>

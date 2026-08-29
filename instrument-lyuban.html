@@ -1,8 +1,7 @@
-<!-- v6 · 29.08.2026 · вместо SVG-иконок — эмодзи/типографика (− + ✕ 🔧 🔍 🧰);
-     нижние чипы-фильтры убраны, фильтр переключается кликом по верхним карточкам
-     (на руках / просрочено / возвращено); "на руках" = число наименований, а не штук;
-     степперы количества, прогресс частичного возврата, относительные даты,
-     скелет-загрузка, мягкое обновление, единый BackButton, reqId + initData -->
+<!-- v7 · 29.08.2026 · бренд Звероферма.BY (зелёный #2d5a27 / кремовый / золото, Playfair+Nunito,
+     фиксированная тема — без light/dark Telegram); единый бэкенд «Ферма» (area=tool);
+     футер TG-Studio. Логика v6: фильтр по верхним карточкам, степперы количества,
+     прогресс частичного возврата, относительные даты, скелет, единый BackButton, reqId+initData -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -11,50 +10,46 @@
 <title>Учёт инструмента — Любань</title>
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script>
-(function(){
-  var tg = window.Telegram && window.Telegram.WebApp;
-  var scheme = (tg && tg.colorScheme) ? tg.colorScheme
-    : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-  document.documentElement.setAttribute('data-theme', scheme);
-})();
-</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Nunito:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap');
 
+/* Бренд Звероферма.BY — фиксированный зелёный (не адаптируется под тему Telegram) */
 :root{
   --radius:16px; --radius-sm:11px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-}
-:root[data-theme="dark"]{
-  --bg:#111417; --surface:#1A1E22; --surface-2:#20252A; --surface-3:#262B31;
-  --ink:#EDEFF0; --ink-soft:#8C949C; --ink-faint:#565D64;
-  --accent:#2AABEE; --accent-dark:#1B8FCB; --accent-soft:rgba(42,171,238,.14);
-  --ok:#38A89D; --ok-soft:rgba(56,168,157,.14);
-  --danger:#E5626A; --danger-soft:rgba(229,98,106,.14);
-  --line:#2A2F35; --line-strong:#3A414A;
-  --shadow: 0 1px 0 rgba(255,255,255,.02) inset, 0 8px 20px -12px rgba(0,0,0,.5);
-  --skeleton: linear-gradient(90deg, #1E2328 0%, #262C33 50%, #1E2328 100%);
-}
-:root[data-theme="light"]{
-  --bg:#F4F6F8; --surface:#FFFFFF; --surface-2:#EEF1F4; --surface-3:#E4E8EC;
-  --ink:#171A1D; --ink-soft:#5B6570; --ink-faint:#98A1AA;
-  --accent:#2AABEE; --accent-dark:#1B8FCB; --accent-soft:rgba(42,171,238,.12);
-  --ok:#2E9B8F; --ok-soft:rgba(46,155,143,.12);
-  --danger:#D6505A; --danger-soft:rgba(214,80,90,.10);
-  --line:#E2E6EA; --line-strong:#CDD3D9;
-  --shadow: 0 1px 0 #fff inset, 0 8px 20px -14px rgba(20,25,30,.18);
-  --skeleton: linear-gradient(90deg, #E9EDF1 0%, #F3F6F8 50%, #E9EDF1 100%);
+
+  --bg:#2d5a27;
+  --cream:#F7F3EB;
+  --surface:rgba(255,255,255,.055);
+  --surface-2:rgba(255,255,255,.10);
+  --surface-3:rgba(255,255,255,.16);
+  --ink:#F7F3EB;
+  --ink-soft:rgba(247,243,235,.72);
+  --ink-faint:rgba(247,243,235,.46);
+  --accent:#2AABEE; --accent-dark:#1F93CF; --accent-soft:rgba(42,171,238,.16);
+  --gold:#C9A84C; --gold-soft:rgba(201,168,76,.16);
+  --ok:#7BC67A; --ok-soft:rgba(123,198,122,.16);
+  --danger:#E8A36B; --danger-soft:rgba(232,163,107,.16);
+  --line:rgba(247,243,235,.13); --line-strong:rgba(247,243,235,.24);
+  --shadow: 0 8px 22px -14px rgba(0,0,0,.5);
+  --skeleton: linear-gradient(90deg, rgba(255,255,255,.04) 0%, rgba(255,255,255,.11) 50%, rgba(255,255,255,.04) 100%);
 }
 
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-html,body{margin:0; padding:0; background:var(--bg); color:var(--ink);
-  font-family:'Inter',sans-serif; touch-action:manipulation;}
-body{padding-top:var(--safe-top);}
+html,body{margin:0; padding:0; color:var(--ink);
+  font-family:'Nunito',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; touch-action:manipulation;}
+body{
+  padding-top:var(--safe-top);
+  min-height:100vh;
+  background:
+    radial-gradient(ellipse 700px 460px at 80% -2%, rgba(255,255,255,.06), transparent 60%),
+    linear-gradient(180deg,#2d5a27 0%, #204019 55%, #16320f 100%);
+  background-attachment:fixed;
+}
 svg{display:block; flex:none;}
 
 /* ===== Шапка ===== */
@@ -65,7 +60,7 @@ svg{display:block; flex:none;}
   display:flex; align-items:center; justify-content:center;
 }
 .topbar .tt{ flex:1; min-width:0; }
-.topbar h1{ font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:18px; margin:0; }
+.topbar h1{ font-family:'Playfair Display',Georgia,serif; font-weight:800; font-size:20px; margin:0; color:var(--cream,#F7F3EB); }
 .topbar p{ margin:2px 0 0; font-size:12.5px; color:var(--ink-soft); }
 .icon-btn{
   width:38px; height:38px; border-radius:50%; flex:none; font-size:16px; line-height:1;
@@ -92,8 +87,8 @@ svg{display:block; flex:none;}
 .sum-card:active{ background:var(--surface-2); }
 .sum-card .v{ font-family:'JetBrains Mono',monospace; font-weight:700; font-size:21px; line-height:1.1; color:var(--ink); }
 .sum-card .l{ font-size:10.5px; color:var(--ink-faint); margin-top:4px; letter-spacing:.01em; }
-.sum-card.sel{ border-color:var(--accent); background:var(--accent-soft); }
-.sum-card.sel .l{ color:var(--accent-dark); }
+.sum-card.sel{ border-color:var(--gold); background:var(--gold-soft); }
+.sum-card.sel .l{ color:var(--gold); }
 .sum-card.danger .v{ color:var(--danger); }
 .sum-card.danger.sel{ border-color:var(--danger); background:var(--danger-soft); }
 .sum-card.danger.sel .l{ color:var(--danger); }
@@ -103,32 +98,31 @@ svg{display:block; flex:none;}
 .search-wrap .si{ position:absolute; left:28px; top:22px; transform:translateY(-50%); font-size:14px; opacity:.6; pointer-events:none; }
 .search-wrap input{
   width:100%; min-height:44px; background:var(--surface-2); border:1px solid var(--line);
-  border-radius:999px; padding:0 16px 0 40px; color:var(--ink); font-size:15px; font-family:'Inter',sans-serif;
+  border-radius:999px; padding:0 16px 0 40px; color:var(--ink); font-size:15px; font-family:'Nunito',sans-serif;
 }
 .search-wrap input::placeholder{ color:var(--ink-faint); }
 .search-wrap input:focus{ outline:none; border-color:var(--accent); }
 
 /* ===== Список ===== */
-.list{ padding:0 16px; display:flex; flex-direction:column; gap:10px;
-  padding-bottom: max(100px, calc(60px + var(--safe-bottom))); }
+.list{ padding:0 16px; display:flex; flex-direction:column; gap:10px; padding-bottom:14px; }
 
 .card{
   background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
-  padding:14px; box-shadow:var(--shadow); cursor:pointer;
+  padding:14px; box-shadow:var(--shadow); cursor:pointer; backdrop-filter:blur(3px);
 }
 .card:active{ background:var(--surface-2); }
-.card.is-overdue{ border-color:rgba(229,98,106,.4); }
+.card.is-overdue{ border-color:rgba(232,163,107,.5); }
 .card-top{ display:flex; align-items:flex-start; gap:10px; }
 .avatar{
   width:36px; height:36px; border-radius:50%; flex:none;
   display:flex; align-items:center; justify-content:center;
-  color:#fff; font-weight:700; font-size:14px; font-family:'Chakra Petch',sans-serif;
+  color:#fff; font-weight:800; font-size:14px; font-family:'Nunito',sans-serif;
 }
 .card-main{ flex:1; min-width:0; }
 .card-title{ font-weight:600; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .card-sub{ font-size:12.5px; color:var(--ink-soft); margin-top:1px; }
 .badge{ font-size:11px; font-weight:600; padding:3px 9px; border-radius:999px; white-space:nowrap; flex:none; }
-.badge-active{ background:var(--accent-soft); color:var(--accent-dark); }
+.badge-active{ background:var(--gold-soft); color:var(--gold); }
 .badge-overdue{ background:var(--danger-soft); color:var(--danger); }
 .badge-returned{ background:var(--ok-soft); color:var(--ok); }
 
@@ -168,16 +162,24 @@ svg{display:block; flex:none;}
 .sk{ border-radius:6px; background:var(--surface-3); background-image:var(--skeleton); background-size:200% 100%; animation:sk 1.3s ease-in-out infinite; }
 @keyframes sk{ 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
 
+/* ===== Футер студии ===== */
+.made-by{ display:flex; justify-content:center; margin:18px auto calc(88px + var(--safe-bottom)); }
+.made-by a{
+  display:flex; align-items:center; gap:7px; padding:8px 15px; border-radius:999px;
+  background:var(--accent); color:#fff; font-size:12.5px; font-weight:700; text-decoration:none;
+}
+.made-by-year{ font-family:'JetBrains Mono',monospace; font-weight:600; opacity:.8; }
+
 /* ===== Нижняя панель ===== */
 .submit-bar{
   position:fixed; left:0; right:0; bottom:0; z-index:5;
   padding:12px 16px calc(12px + var(--safe-bottom));
-  background:var(--bg); border-top:1px solid var(--line);
+  background:#173311; border-top:1px solid var(--line);
 }
 .btn-main{
   width:100%; min-height:50px; border:none; border-radius:var(--radius-sm);
-  background:var(--accent); color:#fff; font-family:'Chakra Petch',sans-serif;
-  font-weight:700; font-size:15px; letter-spacing:.02em;
+  background:var(--accent); color:#fff; font-family:'Nunito',sans-serif;
+  font-weight:800; font-size:15px; letter-spacing:.01em;
   display:flex; align-items:center; justify-content:center; gap:8px;
 }
 .btn-main:active{ background:var(--accent-dark); }
@@ -192,7 +194,7 @@ svg{display:block; flex:none;}
 .sheet-overlay.open{ opacity:1; visibility:visible; }
 .sheet{
   position:fixed; left:0; right:0; bottom:0; z-index:11;
-  background:var(--surface); border-radius:20px 20px 0 0;
+  background:#204019; border-radius:20px 20px 0 0;
   padding:8px 16px calc(16px + var(--safe-bottom));
   transform:translateY(110%); opacity:0; visibility:hidden;
   transition:transform .25s, opacity .25s;
@@ -202,7 +204,7 @@ svg{display:block; flex:none;}
 .sheet .grip{ width:36px; height:4px; border-radius:999px; background:var(--line-strong); margin:6px auto 12px; }
 
 .sheet-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
-.sheet-head h2{ font-family:'Chakra Petch',sans-serif; font-size:17px; margin:0; }
+.sheet-head h2{ font-family:'Playfair Display',Georgia,serif; font-weight:800; font-size:19px; margin:0; color:var(--cream,#F7F3EB); }
 .close-btn{
   width:32px; height:32px; border-radius:50%; border:none; background:var(--surface-2);
   color:var(--ink-soft); font-size:15px; line-height:1;
@@ -217,8 +219,9 @@ svg{display:block; flex:none;}
 .field > input{
   width:100%; min-height:46px; background:var(--surface-2); border:1px solid var(--line);
   border-radius:var(--radius-sm); padding:0 12px; color:var(--ink); font-size:16px;
-  font-family:'Inter',sans-serif;
+  font-family:'Nunito',sans-serif; color-scheme:dark;
 }
+.field > input::placeholder{ color:var(--ink-faint); }
 .field > input[type="date"]{ font-family:'JetBrains Mono',monospace; font-size:15px; }
 .field > input:focus{ outline:none; border-color:var(--accent); }
 .field-hint{ font-size:11.5px; color:var(--ink-faint); margin-top:6px; }
@@ -231,7 +234,7 @@ svg{display:block; flex:none;}
 }
 .stepper-btn{
   width:52px; flex:none; border:none; background:transparent; color:var(--ink);
-  font-family:'Inter',sans-serif; font-size:24px; font-weight:500; line-height:1;
+  font-family:'Nunito',sans-serif; font-size:24px; font-weight:500; line-height:1;
   display:flex; align-items:center; justify-content:center;
 }
 .stepper-btn:active{ background:var(--surface-3); }
@@ -292,6 +295,13 @@ svg{display:block; flex:none;}
   </div>
 
   <div class="list" id="list"></div>
+
+  <div class="made-by">
+    <a href="https://t.me/tg_studio_BY_bot" target="_blank" rel="noopener">
+      <svg width="15" height="15" viewBox="0 0 240 240"><path fill="#fff" d="M100 157l-4 56c6 0 8-3 12-6l27-26 57 42c10 6 18 3 21-9l38-178c4-15-5-21-16-17L14 103c-15 6-15 14-3 18l46 14 106-67c5-3 10-1 6 2z"/></svg>
+      TG-Studio <span class="made-by-year" id="madeByYear">· 2026</span>
+    </a>
+  </div>
 
   <div class="submit-bar">
     <button class="btn-main" id="openAddBtn">+&nbsp; Записать выдачу</button>
@@ -393,8 +403,11 @@ const tg = window.Telegram ? window.Telegram.WebApp : null;
 /* Доступ к кнопке этого Mini App ограничен тегом в LEADTEX —
    отдельная проверка внутри страницы не нужна. */
 
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzx2d6GZ-ERLAzcd7HpjRofwF5DYE03Bj9fIk_U0kyT4if7b5cF6JJlMB8nJUhalZki/exec";
-const BACKEND_READY = !APPS_SCRIPT_URL.includes("ВСТАВЬ");
+/* Единый бэкенд «Ферма» (area=tool). После Deploy подставить /exec.
+   Старый отдельный скрипт инструмента:
+   https://script.google.com/macros/s/AKfycbzx2d6GZ-ERLAzcd7HpjRofwF5DYE03Bj9fIk_U0kyT4if7b5cF6JJlMB8nJUhalZki/exec */
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzPeY26jMlUlon_DaBEWHWvNZvkH6ID4NUpbakNs6tEuSP0f4qmWLPu96zIbo8h4jRq/exec";
+const BACKEND_READY = APPS_SCRIPT_URL.indexOf("PASTE_") !== 0;
 
 function haptic(style) {
   if (tg && tg.HapticFeedback) {
@@ -403,14 +416,10 @@ function haptic(style) {
   }
 }
 
-function applyTelegramTheme(){
-  const scheme = (tg && tg.colorScheme) ? tg.colorScheme
-    : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-  document.documentElement.setAttribute('data-theme', scheme);
-  if (tg) {
-    const s = getComputedStyle(document.documentElement);
-    try { tg.setHeaderColor(s.getPropertyValue("--surface").trim()); tg.setBackgroundColor(s.getPropertyValue("--bg").trim()); } catch(e) {}
-  }
+function applyBrandChrome(){
+  // Бренд Звероферма.BY фиксированный — тему Telegram не подхватываем
+  if (!tg) return;
+  try { tg.setHeaderColor('#2d5a27'); tg.setBackgroundColor('#16320f'); } catch(e) {}
 }
 
 function confirmAsync(message){
@@ -434,10 +443,10 @@ function popSheet(){
 }
 
 function initTelegram() {
+  try { document.getElementById('madeByYear').textContent = '· ' + new Date().getFullYear(); } catch(e) {}
   if (!tg) return;
   tg.ready(); tg.expand();
-  applyTelegramTheme();
-  tg.onEvent && tg.onEvent('themeChanged', applyTelegramTheme);
+  applyBrandChrome();
   if (tg.isVersionAtLeast && tg.isVersionAtLeast('7.7')) { try { tg.disableVerticalSwipes(); } catch(e) {} }
   if (tg.BackButton) tg.BackButton.onClick(()=>{
     const fn = sheetStack[sheetStack.length - 1];
@@ -485,7 +494,7 @@ let currentFilter = "open";
 let searchQuery = "";
 let isLoading = false;
 
-const AVATAR_COLORS = ["#2AABEE","#B369D6","#E0952E","#38A89D","#E5626A","#C08A4E"];
+const AVATAR_COLORS = ["#C9A84C","#7BC67A","#4A8C3F","#A9743E","#5B8C8A","#B5893F"];
 
 function daysAgo(n){ const d = new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); }
 function addMonths(dateStr, n){ const d = new Date(dateStr || todayStr()); d.setMonth(d.getMonth()+n); return d.toISOString().slice(0,10); }
