@@ -67,15 +67,20 @@
   .field:last-child{margin-bottom:0;}
   label{display:block;font-size:12px;font-weight:700;color:var(--ink-faint);margin-bottom:7px;text-transform:uppercase;letter-spacing:.04em;}
   input[type=text], input[type=number], input[type=date], input[type=time]{
-    width:100%;padding:13px 13px;min-height:48px;
+    display:block;width:100%;max-width:100%;min-width:0;box-sizing:border-box;
+    padding:13px 13px;min-height:48px;
     border:1.5px solid var(--input-border);border-radius:11px;
     font-size:16px;font-family:inherit;color:var(--cream);
     background:var(--input-bg);outline:none;color-scheme:dark;
   }
+  input[type=date], input[type=time]{ -webkit-appearance:none; appearance:none; text-align:left; }
+  input[type=date]::-webkit-date-and-time-value,
+  input[type=time]::-webkit-date-and-time-value{ text-align:left; margin:0; }
+  input[type=date]::-webkit-calendar-picker-indicator,
+  input[type=time]::-webkit-calendar-picker-indicator{ margin-left:auto; }
   input:focus{border-color:var(--gold);}
-  .price-row{display:flex;align-items:center;gap:10px;}
-  .price-row input{flex:1;}
-  .price-suffix{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--ink-soft);flex:none;}
+  .field-row{display:flex;gap:12px;}
+  .field-row .field{flex:1;min-width:0;}
 
   .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--card-border);}
   .toggle-row:last-child{border-bottom:none;}
@@ -174,15 +179,14 @@
         <label for="date">Дата заезда</label>
         <input type="date" id="date">
       </div>
-      <div class="field">
-        <label for="time">Время начала</label>
-        <input type="time" id="time">
-      </div>
-      <div class="field">
-        <label for="price">Цена</label>
-        <div class="price-row">
+      <div class="field-row">
+        <div class="field">
+          <label for="time">Время</label>
+          <input type="time" id="time">
+        </div>
+        <div class="field">
+          <label for="price">Цена, руб/кг</label>
           <input type="number" id="price" inputmode="decimal" min="0" step="0.5" placeholder="15">
-          <span class="price-suffix">руб/кг</span>
         </div>
       </div>
       <div class="field">
