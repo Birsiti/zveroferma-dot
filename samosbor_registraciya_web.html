@@ -192,20 +192,16 @@
     backdrop-filter:blur(6px);
   }
   .state-card .icon{font-size:44px;margin-bottom:12px;}
-  .state-card h2{font-family:'Playfair Display',Georgia,serif;font-size:23px;font-weight:800;margin:0 0 8px;color:var(--cream);}
-  .state-card p{font-size:14px;line-height:1.55;color:var(--ink-soft);margin:0;}
+  .state-card h2{font-family:'Playfair Display',Georgia,serif;font-size:23px;font-weight:800;margin:0 0 10px;color:var(--cream);}
+  .state-card p{font-size:15px;line-height:1.6;color:var(--ink-soft);margin:0;}
+  .state-card .when{
+    font-size:16px;font-weight:700;color:var(--cream);line-height:1.75;
+    margin:0 auto 12px;display:inline-block;text-align:left;
+  }
   .ticket-id{
     display:inline-block;margin-top:16px;padding:7px 14px;background:rgba(255,255,255,0.1);
     border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cream);
   }
-
-  .made-by{display:flex;justify-content:center;margin:26px auto max(18px,var(--safe-bottom));}
-  .made-by a{
-    display:flex;align-items:center;gap:7px;padding:8px 15px;border-radius:999px;
-    background:var(--tg);color:#fff;font-size:12.5px;font-weight:700;text-decoration:none;
-  }
-  .made-by svg{display:block;flex:none;}
-  .made-by-year{font-family:'JetBrains Mono',monospace;font-weight:600;opacity:.8;}
 
   .hidden{display:none !important;}
   .error-msg{color:var(--error);font-size:13px;margin-top:-4px;font-weight:600;}
@@ -273,7 +269,8 @@
   <div class="state-card hidden" id="successCard">
     <div class="icon">🫐</div>
     <h2>Записали!</h2>
-    <p id="successText">Ждём Вас. Если что-то изменится — позвоним.</p>
+    <div class="when hidden" id="successWhen"></div>
+    <p id="successText">Если планы изменятся — напишите в этот чат.</p>
     <div class="ticket-id" id="ticketId"></div>
   </div>
 
@@ -315,14 +312,8 @@
   <div class="state-card hidden" id="confirmDoneCard">
     <div class="icon" id="confirmDoneIcon">🫐</div>
     <h2 id="confirmDoneTitle">Записали!</h2>
+    <div class="when hidden" id="confirmDoneWhen"></div>
     <p id="confirmDoneText"></p>
-  </div>
-
-  <div class="made-by">
-    <a href="https://t.me/tg_studio_BY_bot" target="_blank" rel="noopener">
-      <svg width="15" height="15" viewBox="0 0 240 240"><path fill="#fff" d="M100 157l-4 56c6 0 8-3 12-6l27-26 57 42c10 6 18 3 21-9l38-178c4-15-5-21-16-17L14 103c-15 6-15 14-3 18l46 14 106-67c5-3 10-1 6 2z"/></svg>
-      TG-Studio <span class="made-by-year" id="madeByYear">· 2026</span>
-    </a>
   </div>
 
 </div>
@@ -335,7 +326,6 @@ if (tg){
   if (tg.isVersionAtLeast && tg.isVersionAtLeast('7.7')){ try{ tg.disableVerticalSwipes(); }catch(e){} }
 }
 const telegramUser = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || null;
-try{ document.getElementById('madeByYear').textContent = '· ' + new Date().getFullYear(); }catch(e){}
 function haptic(style){
   if (tg && tg.HapticFeedback){
     if (['success','error','warning'].includes(style)) tg.HapticFeedback.notificationOccurred(style);
@@ -501,12 +491,21 @@ async function loadStatus() {
 }
 
 /* ===== Режим подтверждения приезда (открывается кнопкой из сообщения-приглашения) ===== */
-function confirmDone(icon, title, text){
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function whenBlock(date, time){
+  const d = fmtDate(date), t = fmtTime(time);
+  if (!d && !t) return '';
+  return (d ? `<div>📅&nbsp;&nbsp;${esc(d)}</div>` : '') + (t ? `<div>🕙&nbsp;&nbsp;${esc(t)}</div>` : '');
+}
+function confirmDone(icon, title, text, whenHtml){
   document.getElementById('confirmCard').classList.add('hidden');
   const d = document.getElementById('confirmDoneCard');
   d.classList.remove('hidden');
   document.getElementById('confirmDoneIcon').textContent = icon;
   document.getElementById('confirmDoneTitle').textContent = title;
+  const w = document.getElementById('confirmDoneWhen');
+  w.innerHTML = whenHtml || '';
+  w.classList.toggle('hidden', !whenHtml);
   document.getElementById('confirmDoneText').textContent = text;
 }
 
@@ -556,11 +555,12 @@ async function sendConfirm(id, coming, people){
     if (res.success){
       haptic('success');
       if (coming){
-        const when = [fmtDate(res.date), fmtTime(res.time)].filter(Boolean).join(', ');
-        confirmDone('🫐', 'Записали!', 'Ждём вас' + (when ? ' ' + when : '') +
-          '. Если планы изменятся — напишите нам.');
+        confirmDone('🫐', 'Записали, ждём вас!',
+          'Если планы изменятся — напишите в этот чат.',
+          whenBlock(res.date, res.time));
       } else {
-        confirmDone('👋', 'Хорошо, спросим в следующий раз', 'Вы остаётесь в списке — позовём на следующий заезд.');
+        confirmDone('👋', 'Хорошо, спросим в следующий раз',
+          'Вы остаётесь в списке — позовём на следующий заезд.');
       }
     } else {
       err.textContent = res.message || 'Не получилось. Попробуйте ещё раз.';
@@ -614,9 +614,12 @@ document.getElementById('regForm').addEventListener('submit', async (e) => {
           : 'Сообщим первыми, когда откроем следующий набор.';
         showStateCard('waitlistCard');
       } else {
-        document.getElementById('successText').textContent = 'Ждём Вас ' + document.getElementById('pillDate').textContent +
-          (document.getElementById('pillTime').textContent ? ', ' + document.getElementById('pillTime').textContent : '') +
-          '. Если что-то изменится — позвоним.';
+        const dTxt = document.getElementById('pillDate').textContent;
+        const tTxt = document.getElementById('pillTime').textContent;
+        const sw = document.getElementById('successWhen');
+        sw.innerHTML = (dTxt ? `<div>📅&nbsp;&nbsp;${esc(dTxt)}</div>` : '') + (tTxt ? `<div>🕙&nbsp;&nbsp;${esc(tTxt)}</div>` : '');
+        sw.classList.toggle('hidden', !dTxt && !tTxt);
+        document.getElementById('successText').textContent = 'Если планы изменятся — напишите в этот чат.';
         document.getElementById('ticketId').textContent = '№ ' + (result.id || '—');
         showStateCard('successCard');
       }
