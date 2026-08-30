@@ -28,6 +28,10 @@
 - `РЕГИСТРАЦИИ` — `ID | Дата_регистрации | Имя | Телефон | Telegram_ID | Человек | Статус`
 - `НАСТРОЙКИ` — `Ключ | Значение` (`SEASON_ACTIVE`, `SESSION_OPEN`, `SESSION_DATE`, `SESSION_TIME`, `SESSION_PRICE`, `LIMIT`)
 - `ЛИСТ_ОЖИДАНИЯ` — `ID | Дата_записи | Имя | Телефон | Telegram_ID | Человек | Статус`
+- `КОНТАКТЫ` — `Telegram_ID | Username | Имя | Телефон | Первый_визит | Последний_визит | Визитов | Регистраций`
+  — каждый визит формы (`POST action:'visit'`) делает upsert строки по `Telegram_ID`
+  (считает визиты); имя/телефон запоминаются с последней успешной записи и при
+  следующем открытии формы подставляются обратно в поля.
 
 ## Первый запуск
 
@@ -70,8 +74,11 @@
 - `GET  ?action=regs` → `{ ok, sessionDate, sessionTime, limit, confirmed, pending, pool, regs:[…] }`
   — `regs` плоский список (`id, ts, name, phone, telegramId, people, status, tripDate, invitedAt`),
   админка сама раскладывает по секциям.
-- `POST {action:'register', name, phone, telegramId, people}` → запись на открытый заезд, `Статус`=«едет».
-- `POST {action:'waitlist', name, phone, telegramId, people}` → в пул, `Статус`=«без даты».
+- `POST {action:'visit', telegramId, username}` → `{ ok, known, name, phone }` — форма зовёт при
+  загрузке: пишет визит в `КОНТАКТЫ`, возвращает имя/телефон с прошлой записи для автоподстановки
+  (`known:true`, если телефон известен). Без `telegramId` — пустой ответ.
+- `POST {action:'register', name, phone, telegramId, username, people}` → запись на открытый заезд, `Статус`=«едет».
+- `POST {action:'waitlist', name, phone, telegramId, username, people}` → в пул, `Статус`=«без даты».
 - `POST {action:'cancel', phone}` → `Статус`=«отменено» (+ авто-приглашение первого из пула, если было «едет»).
 - `POST {action:'confirmTrip', id, people, coming:true|false}` → из мини-аппа: `Статус`=«едет»/«не едет».
 - `POST {action:'invite', id}` → админ: `Статус`=«приглашён» + бот шлёт сообщение с web_app-кнопкой.

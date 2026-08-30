@@ -53,7 +53,7 @@ function doPost(e){
 function areaByAction_(a){
   if (!a) return null;
   if (['list','add','return','extend','confirm'].indexOf(a) >= 0) return 'tool';
-  if (['status','regs','register','waitlist','cancel','adminUpdate'].indexOf(a) >= 0) return 'samosbor';
+  if (['status','regs','register','waitlist','cancel','adminUpdate','visit'].indexOf(a) >= 0) return 'samosbor';
   return null;
 }
 

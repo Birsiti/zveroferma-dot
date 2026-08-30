@@ -1,5 +1,7 @@
 <!-- v4 · 30.08.2026 · инфо-карточка заезда вертикальными строками (📅 🕙 💰), дата «5 сентября — суббота»,
-     цена «N руб/кг», текст крупнее/контрастнее; режим подтверждения приезда (?confirm=REG-…) -->
+     цена «N руб/кг», текст крупнее/контрастнее; режим подтверждения приезда (?confirm=REG-…)
+     v4.1 · 30.08.2026 · при загрузке визит пишется в лист КОНТАКТЫ по Telegram ID;
+     если человек уже записывался — имя и телефон подставляются в поля автоматически -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -261,6 +263,7 @@
           <button type="button" id="plus" aria-label="Больше">+</button>
         </div>
       </div>
+      <div class="hint hidden" id="prefillHint" style="color:var(--green-light);text-align:left;margin-top:-6px;">✓ Имя и телефон подставлены из прошлой записи — проверьте</div>
       <div class="error-msg hidden" id="errorMsg"></div>
       <button type="submit" class="submit-btn" id="submitBtn" disabled>Загрузка…</button>
       <div class="hint" id="formHint">🔒 Вход на поле — только по регистрации</div>
@@ -575,8 +578,37 @@ async function sendConfirm(id, coming, people){
   }
 }
 
-if (CONFIRM_ID) startConfirm(CONFIRM_ID);
-else loadStatus();
+if (CONFIRM_ID) {
+  startConfirm(CONFIRM_ID);
+} else {
+  loadStatus();
+  prefillFromContact();
+}
+
+/* Записать визит в таблицу КОНТАКТЫ по Telegram ID и, если человек уже
+   записывался на самосбор, подставить его имя и телефон в поля формы. */
+async function prefillFromContact() {
+  if (!telegramUser || !telegramUser.id) return;   // без Mini App-контекста ID нет — подставлять нечего
+  try {
+    const res = await apiPost({
+      action: 'visit',
+      telegramId: telegramUser.id,
+      username: telegramUser.username || ''
+    });
+    if (!res || !res.ok) return;
+    const nameEl = document.getElementById('name');
+    const phoneEl = document.getElementById('phone');
+    let filled = false;
+    if (res.name && !nameEl.value.trim()) { nameEl.value = res.name; filled = true; }
+    if (res.phone && !phoneEl.value.trim()) {
+      let d = String(res.phone).replace(/\D/g, '');
+      if (d.length > 9 && d.slice(0, 3) === '375') d = d.slice(3);
+      d = d.slice(-9);
+      if (d.length === 9) { phoneEl.value = formatPhone(d); filled = true; }
+    }
+    if (filled) document.getElementById('prefillHint').classList.remove('hidden');
+  } catch (e) {}
+}
 
 let lastAttemptedPhone = '';
 
@@ -601,6 +633,7 @@ document.getElementById('regForm').addEventListener('submit', async (e) => {
     name: nameValue,
     phone: fullPhone,
     telegramId: (telegramUser && telegramUser.id) || '',
+    username: (telegramUser && telegramUser.username) || '',
     people: people
   };
 

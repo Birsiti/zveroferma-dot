@@ -17,6 +17,11 @@
                    SESSION_DATE, SESSION_TIME, SESSION_PRICE, LIMIT)
      ЛИСТ_ОЖИДАНИЯ — старый лист; новые заявки без даты пишутся уже в РЕГИСТРАЦИИ,
                    но если в нём остались строки — админ их видит в пуле.
+     КОНТАКТЫ    — Telegram_ID | Username | Имя | Телефон | Первый_визит
+                   | Последний_визит | Визитов | Регистраций
+       Каждый визит формы (POST action:'visit') делает upsert строки по Telegram_ID:
+       считает визиты, а имя/телефон запоминает с последней успешной записи —
+       чтобы при следующем открытии формы подставить их обратно в поля.
 
    Ёмкость заезда = число заявок со Статусом «едет»/«приехал» на текущую дату
    (LIMIT в НАСТРОЙКАХ). Приглашённые ещё не заняли место.
@@ -25,8 +30,10 @@
      GET  (bare)               → { seasonActive, open, date, time, price, count, limit, remaining, full }
      GET  ?action=reg&id=…     → { ok, id, name, phone, people, status, tripDate, time, price, answered }
      GET  ?action=regs         → { ok, sessionDate, sessionTime, limit, confirmed, pending, pool, regs:[…] }
-     POST { action:'register', name, phone, telegramId, people }
-     POST { action:'waitlist', name, phone, telegramId, people }
+     POST { action:'visit', telegramId, username }   // из формы при загрузке
+          → { ok, known, name, phone }               // known=true если есть телефон с прошлой записи
+     POST { action:'register', name, phone, telegramId, username, people }
+     POST { action:'waitlist', name, phone, telegramId, username, people }
      POST { action:'cancel', phone }
      POST { action:'confirmTrip', id, people, coming:true|false }   // из экрана подтверждения
      POST { action:'invite', id }          // админ: позвать одного из пула
@@ -37,9 +44,11 @@
 var SB_REG  = 'РЕГИСТРАЦИИ';
 var SB_SET  = 'НАСТРОЙКИ';
 var SB_WAIT = 'ЛИСТ_ОЖИДАНИЯ';
+var SB_CONTACTS  = 'КОНТАКТЫ';
 var SB_REG_COLS  = ['ID','Дата_регистрации','Имя','Телефон','Telegram_ID','Человек','Статус','Дата_заезда','Приглашён'];
 var SB_SET_COLS  = ['Ключ','Значение'];
 var SB_WAIT_COLS = ['ID','Дата_записи','Имя','Телефон','Telegram_ID','Человек','Статус'];
+var SB_CONTACTS_COLS = ['Telegram_ID','Username','Имя','Телефон','Первый_визит','Последний_визит','Визитов','Регистраций'];
 
 var SB_ST = { GOING:'едет', POOL:'без даты', INVITED:'приглашён', DECLINED:'не едет', CAME:'приехал', CANCELLED:'отменено' };
 
@@ -145,6 +154,7 @@ function Samosbor_regs_(){
 
 function Samosbor_post(body){
   switch (body.action){
+    case 'visit':       return Samosbor_visit_(body);
     case 'register':    return Samosbor_register_(body);
     case 'waitlist':    return Samosbor_waitlist_(body);
     case 'cancel':      return Samosbor_cancel_(body);
@@ -179,6 +189,7 @@ function Samosbor_register_(body){
     'Telegram_ID':trim_(body.telegramId), 'Человек':people,
     'Статус':SB_ST.GOING, 'Дата_заезда':s.date, 'Приглашён':''
   });
+  try{ Samosbor_contactSaveReg_(trim_(body.telegramId), trim_(body.username), name, phone); }catch(e){}
   var ns = Samosbor_status_();
   notifyAdmins_('🫐 Записался на самосбор\n' + name + ' · ' + phone + ' · ' +
     plural_(people,'человек','человека','человек') + '\n' + fmtRuDate_(s.date) +
@@ -206,6 +217,7 @@ function Samosbor_waitlist_(body){
     'Telegram_ID':trim_(body.telegramId), 'Человек':people,
     'Статус':SB_ST.POOL, 'Дата_заезда':'', 'Приглашён':''
   });
+  try{ Samosbor_contactSaveReg_(trim_(body.telegramId), trim_(body.username), name, phone); }catch(e){}
   notifyAdmins_('📋 Заявка без даты\n' + name + ' · ' + phone + ' · ' +
     plural_(people,'человек','человека','человек'));
   return json_({ success:true, id:id });
@@ -378,6 +390,110 @@ function Samosbor_adminUpdate_(body){
   Samosbor_setSetting_('SESSION_PRICE', String(body.price || '').replace(/[^\d.,]/g, ''));
   Samosbor_setSetting_('LIMIT',         Math.max(1, Math.floor(Number(body.limit)) || 10));
   return json_({ success:true });
+}
+
+/* ==================== КОНТАКТЫ (визиты формы + автоподстановка) ==================== */
+
+/** Визит формы: upsert строки в КОНТАКТЫ по Telegram_ID.
+    Отдаёт имя/телефон с прошлой записи, чтобы форма подставила их в поля. */
+function Samosbor_visit_(body){
+  var tgId = trim_(body.telegramId);
+  if (!tgId) return json_({ ok:true, known:false, name:'', phone:'' });
+  var c = Samosbor_contactTouch_(tgId, trim_(body.username));
+  return json_({
+    ok: true,
+    known: digits_(c.phone).length >= 9,
+    name: c.name || '',
+    phone: c.phone || ''
+  });
+}
+
+/** Строка листа КОНТАКТЫ по Telegram_ID → { rowNum, row } либо null. */
+function Samosbor_contactRow_(sh, tgId){
+  var values = sh.getDataRange().getValues();
+  tgId = String(tgId).trim();
+  for (var i = 1; i < values.length; i++){
+    if (String(values[i][0]).trim() === tgId) return { rowNum: i + 1, row: values[i] };
+  }
+  return null;
+}
+
+/** Последняя запись человека в РЕГИСТРАЦИЯХ по Telegram_ID (для бэкфилла старых контактов). */
+function Samosbor_prevReg_(tgId){
+  tgId = String(tgId).trim();
+  var mine = Samosbor_rows_().filter(function(r){
+    return r.telegramId && String(r.telegramId).trim() === tgId && (r.name || r.phone);
+  });
+  return mine.length ? mine[mine.length - 1] : null;
+}
+
+/** Отметить визит: создать или обновить строку КОНТАКТЫ. Возвращает { name, phone }. */
+function Samosbor_contactTouch_(tgId, username){
+  tgId = trim_(tgId);
+  if (!tgId) return { name:'', phone:'' };
+  var sh = sheet_(SB_CONTACTS, SB_CONTACTS_COLS);
+  var now = new Date();
+  var col = function(h){ return SB_CONTACTS_COLS.indexOf(h) + 1; };
+  var hit = Samosbor_contactRow_(sh, tgId);
+
+  if (!hit){
+    var prev = Samosbor_prevReg_(tgId);
+    appendRow_(SB_CONTACTS, SB_CONTACTS_COLS, {
+      'Telegram_ID': tgId, 'Username': username || '',
+      'Имя': prev ? prev.name : '', 'Телефон': prev ? prev.phone : '',
+      'Первый_визит': now, 'Последний_визит': now,
+      'Визитов': 1, 'Регистраций': prev ? 1 : 0
+    });
+    return { name: prev ? prev.name : '', phone: prev ? prev.phone : '' };
+  }
+
+  var r = hit.row;
+  sh.getRange(hit.rowNum, col('Последний_визит')).setValue(now);
+  sh.getRange(hit.rowNum, col('Визитов')).setValue((Number(r[col('Визитов') - 1]) || 0) + 1);
+  if (username && !trim_(r[col('Username') - 1])){
+    sh.getRange(hit.rowNum, col('Username')).setValue(username);
+  }
+
+  var name  = trim_(r[col('Имя') - 1]);
+  var phone = trim_(r[col('Телефон') - 1]);
+  if (!phone){                              // контакт без телефона — попробовать бэкфилл из регистраций
+    var pr = Samosbor_prevReg_(tgId);
+    if (pr && pr.phone){
+      name = name || pr.name;
+      phone = pr.phone;
+      if (pr.name && !trim_(r[col('Имя') - 1])) sh.getRange(hit.rowNum, col('Имя')).setValue(pr.name);
+      sh.getRange(hit.rowNum, col('Телефон')).setValue(pr.phone);
+    }
+  }
+  return { name: name, phone: phone };
+}
+
+/** После успешной записи / листа ожидания — запомнить имя+телефон в КОНТАКТЫ. */
+function Samosbor_contactSaveReg_(tgId, username, name, phone){
+  tgId = trim_(tgId);
+  if (!tgId) return;
+  var sh = sheet_(SB_CONTACTS, SB_CONTACTS_COLS);
+  var now = new Date();
+  var col = function(h){ return SB_CONTACTS_COLS.indexOf(h) + 1; };
+  var hit = Samosbor_contactRow_(sh, tgId);
+
+  if (!hit){
+    appendRow_(SB_CONTACTS, SB_CONTACTS_COLS, {
+      'Telegram_ID': tgId, 'Username': username || '',
+      'Имя': name || '', 'Телефон': phone || '',
+      'Первый_визит': now, 'Последний_визит': now,
+      'Визитов': 1, 'Регистраций': 1
+    });
+    return;
+  }
+  var r = hit.row;
+  if (name)  sh.getRange(hit.rowNum, col('Имя')).setValue(name);
+  if (phone) sh.getRange(hit.rowNum, col('Телефон')).setValue(phone);
+  sh.getRange(hit.rowNum, col('Последний_визит')).setValue(now);
+  sh.getRange(hit.rowNum, col('Регистраций')).setValue((Number(r[col('Регистраций') - 1]) || 0) + 1);
+  if (username && !trim_(r[col('Username') - 1])){
+    sh.getRange(hit.rowNum, col('Username')).setValue(username);
+  }
 }
 
 /* ==================== настройки / хелперы ==================== */

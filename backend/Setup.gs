@@ -21,6 +21,7 @@ function setup(){
   sheet_(SB_SET, SB_SET_COLS);
   ensureHeaders_(SB_REG, SB_REG_COLS);   // допишет «Статус», «Дата_заезда», «Приглашён»
   ensureHeaders_(SB_WAIT, SB_WAIT_COLS);
+  sheet_(SB_CONTACTS, SB_CONTACTS_COLS); // лог визитов формы + автоподстановка имени/телефона
   ensureSamosborDefaults_();
   // Триггер напоминаний по инструменту (~8:00 ежедневно)
   removeTriggers_('Tool_sendReminders');
